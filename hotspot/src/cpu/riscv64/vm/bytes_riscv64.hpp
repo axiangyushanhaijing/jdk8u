@@ -35,6 +35,7 @@ class Bytes: AllStatic {
   // RISCV needs to check for alignment.
 
   // Forward declarations of the compiler-dependent implementation
+  static inline bool is_Java_byte_ordering_different(){ return true; }
   static inline u2 swap_u2(u2 x);
   static inline u4 swap_u4(u4 x);
   static inline u8 swap_u8(u8 x);
