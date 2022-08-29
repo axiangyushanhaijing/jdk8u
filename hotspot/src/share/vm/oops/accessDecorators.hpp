@@ -29,6 +29,19 @@
 #include "memory/allocation.hpp"
 //#include "metaprogramming/integralConstant.hpp"
 #include "utilities/globalDefinitions.hpp"
+template<typename T, T v>
+struct IntegralConstant {
+  typedef T value_type;
+  static const value_type value = v;
+  typedef IntegralConstant<T, v> type;
+  operator value_type() { return value; }
+};
+
+// A bool valued IntegralConstant whose value is true.
+typedef IntegralConstant<bool, true> TrueType;
+
+// A bool valued IntegralConstant whose value is false.
+typedef IntegralConstant<bool, false> FalseType;
 #define BT_BUILDTIME_DECORATORS (ACCESS_PRIMITIVE_SUPPORT | ACCESS_TO_SPACE_INVARIANT_SUPPORT)
 
 // A decorator is an attribute or property that affects the way a memory access is performed in some way.
