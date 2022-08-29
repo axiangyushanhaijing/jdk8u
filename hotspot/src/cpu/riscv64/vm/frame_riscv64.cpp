@@ -287,7 +287,7 @@ void frame::patch_pc(Thread* thread, address pc) {
   assert(_pc == *pc_addr || pc == *pc_addr, "must be");
   *pc_addr = pc;
   _cb = CodeCache::find_blob(pc);
-  address original_pc = CompiledMethod::get_deopt_original_pc(this);
+  address original_pc = nmethod::get_deopt_original_pc(this);
   if (original_pc != NULL) {
     assert(original_pc == _pc, "expected original PC to be stored before patching");
     _deopt_state = is_deoptimized;
