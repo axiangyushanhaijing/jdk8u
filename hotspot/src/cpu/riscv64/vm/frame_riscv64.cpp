@@ -59,8 +59,7 @@ bool frame::safe_for_sender(JavaThread *thread) {
   address   unextended_sp = (address)_unextended_sp;
 
   // consider stack guards when trying to determine "safe" stack pointers
-  static size_t stack_guard_size = os::uses_stack_guard_pages() ?
-    (JavaThread::stack_red_zone_size() + JavaThread::stack_yellow_zone_size()) : 0;
+static size_t stack_guard_size = os::uses_stack_guard_pages() ? (StackYellowPages + StackRedPages) * os::vm_page_size() : 0;
   assert_cond(thread != NULL);
   size_t usable_stack_size = thread->stack_size() - stack_guard_size;
 
@@ -228,7 +227,7 @@ bool frame::safe_for_sender(JavaThread *thread) {
       return jcw_safe;
     }
 
-    CompiledMethod* nm = sender_blob->as_compiled_method_or_null();
+    nmethod* nm = sender_blob->as_nmethod_or_null();
     if (nm != NULL) {
       if (nm->is_deopt_mh_entry(sender_pc) || nm->is_deopt_entry(sender_pc) ||
           nm->method()->is_method_handle_intrinsic()) {
@@ -249,7 +248,7 @@ bool frame::safe_for_sender(JavaThread *thread) {
     // should not be anything but the call stub (already covered), the interpreter (already covered)
     // or an nmethod.
 
-    if (!sender_blob->is_compiled()) {
+    if (!sender_blob->is_nmethod()) {
         return false;
     }
 
@@ -364,7 +363,7 @@ frame frame::sender_for_entry_frame(RegisterMap* map) const {
   }
   map->clear();
   assert(map->include_argument_oops(), "should be set by clear");
-  vmassert(jfa->last_Java_pc() != NULL, "not walkable");
+  assert(jfa->last_Java_pc() != NULL, "not walkable");
   frame fr(jfa->last_Java_sp(), jfa->last_Java_fp(), jfa->last_Java_pc());
   return fr;
 }
@@ -398,7 +397,7 @@ void frame::adjust_unextended_sp() {
   // returning to any of these call sites.
 
   if (_cb != NULL) {
-    CompiledMethod* sender_cm = _cb->as_compiled_method_or_null();
+    nmethod* sender_cm = _cb->as_nmethod_or_null();
     if (sender_cm != NULL) {
       // If the sender PC is a deoptimization point, get the original PC.
       if (sender_cm->is_deopt_entry(_pc) ||
@@ -551,14 +550,14 @@ bool frame::is_interpreted_frame_valid(JavaThread* thread) const {
   }
 
   // validate bci/bcx
-  address  bcp    = interpreter_frame_bcp();
-  if (m->validate_bci_from_bcp(bcp) < 0) {
+  intptr_t  bcp    = interpreter_frame_bcx();
+  if (m->validate_bci_from_bcx(bcp) < 0) {
     return false;
   }
 
   // validate constantPoolCache*
   ConstantPoolCache* cp = *interpreter_frame_cache_addr();
-  if (MetaspaceObj::is_valid(cp) == false) {
+  if (cp == NULL || !cp->is_metaspace_object()) {
     return false;
   }
   // validate locals
@@ -635,7 +634,7 @@ void frame::describe_pd(FrameValues& values, int frame_no) {
     DESCRIBE_FP_OFFSET(interpreter_frame_sender_sp);
     DESCRIBE_FP_OFFSET(interpreter_frame_last_sp);
     DESCRIBE_FP_OFFSET(interpreter_frame_method);
-    DESCRIBE_FP_OFFSET(interpreter_frame_mdp);
+    DESCRIBE_FP_OFFSET(interpreter_frame_mdx);
     DESCRIBE_FP_OFFSET(interpreter_frame_mirror);
     DESCRIBE_FP_OFFSET(interpreter_frame_cache);
     DESCRIBE_FP_OFFSET(interpreter_frame_locals);
@@ -679,15 +678,15 @@ void JavaFrameAnchor::make_walkable(JavaThread* thread) {
   if (last_Java_sp() == NULL) { return; }
   // already walkable?
   if (walkable()) { return; }
-  vmassert(Thread::current() == (Thread*)thread, "not current thread");
-  vmassert(last_Java_sp() != NULL, "not called from Java code?");
-  vmassert(last_Java_pc() == NULL, "already walkable");
+  assert(Thread::current() == (Thread*)thread, "not current thread");
+  assert(last_Java_sp() != NULL, "not called from Java code?");
+  assert(last_Java_pc() == NULL, "already walkable");
   capture_last_Java_pc();
-  vmassert(walkable(), "something went wrong");
+  assert(walkable(), "something went wrong");
 }
 
 void JavaFrameAnchor::capture_last_Java_pc() {
-  vmassert(_last_Java_sp != NULL, "no last frame set");
-  vmassert(_last_Java_pc == NULL, "already walkable");
+  assert(_last_Java_sp != NULL, "no last frame set");
+  assert(_last_Java_pc == NULL, "already walkable");
   _last_Java_pc = (address)_last_Java_sp[-1];
 }
