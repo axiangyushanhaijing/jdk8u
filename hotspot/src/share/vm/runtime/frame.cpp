@@ -429,6 +429,11 @@ void frame::interpreter_frame_set_method(Method* method) {
   *interpreter_frame_method_addr() = method;
 }
 
+void frame::interpreter_frame_set_mirror(oop mirror) {
+  assert(is_interpreted_frame(), "interpreted frame expected");
+  *interpreter_frame_mirror_addr() = mirror;
+}
+
 void frame::interpreter_frame_set_bcx(intptr_t bcx) {
   assert(is_interpreted_frame(), "Not an interpreted frame");
   if (ProfileInterpreter) {
@@ -495,14 +500,14 @@ void frame::interpreter_frame_set_mdx(intptr_t mdx) {
   *interpreter_frame_mdx_addr() = mdx;
 }
 
-address frame::interpreter_frame_mdp() const {
+intptr_t frame::interpreter_frame_mdp() const {
   assert(ProfileInterpreter, "must be profiling interpreter");
   assert(is_interpreted_frame(), "interpreted frame expected");
   intptr_t bcx = interpreter_frame_bcx();
   intptr_t mdx = interpreter_frame_mdx();
 
   assert(!is_bci(bcx), "should not access mdp during GC");
-  return (address)mdx;
+  return mdx;
 }
 
 void frame::interpreter_frame_set_mdp(address mdp) {
