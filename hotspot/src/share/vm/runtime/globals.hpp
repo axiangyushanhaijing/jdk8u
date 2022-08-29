@@ -4078,7 +4078,10 @@ class CommandLineFlags {
 #else
 #define DECLARE_LP64_PRODUCT_FLAG(type, name, value, doc) const type name = value;
 #endif // _LP64
+#define IGNORE_RANGE(a, b)
+#define IGNORE_CONSTRAINT(func,type)
 
+#define IGNORE_WRITEABLE(type)
 // Implementation macros
 #define MATERIALIZE_PRODUCT_FLAG(type, name, value, doc)      type name = value;
 #define MATERIALIZE_PD_PRODUCT_FLAG(type, name, doc)          type name = pd_##name;
