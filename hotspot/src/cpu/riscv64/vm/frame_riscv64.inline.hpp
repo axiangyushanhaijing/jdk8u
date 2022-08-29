@@ -169,8 +169,8 @@ inline intptr_t* frame::interpreter_frame_last_sp() const {
   return *(intptr_t**)addr_at(interpreter_frame_last_sp_offset);
 }
 
-inline intptr_t* frame::interpreter_frame_bcp_addr() const {
-  return (intptr_t*)addr_at(interpreter_frame_bcp_offset);
+inline intptr_t* frame::interpreter_frame_bcx_addr() const {
+  return (intptr_t*)addr_at(interpreter_frame_bcx_offset);
 }
 
 inline intptr_t* frame::interpreter_frame_mdp_addr() const {

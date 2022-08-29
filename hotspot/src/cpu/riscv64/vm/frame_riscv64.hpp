@@ -127,8 +127,8 @@
     interpreter_frame_mirror_offset                  = interpreter_frame_padding_offset - 1,
     interpreter_frame_cache_offset                   = interpreter_frame_mirror_offset - 1,
     interpreter_frame_locals_offset                  = interpreter_frame_cache_offset - 1,
-    interpreter_frame_bcp_offset                     = interpreter_frame_locals_offset - 1,
-    interpreter_frame_initial_sp_offset              = interpreter_frame_bcp_offset - 1,
+    interpreter_frame_bcx_offset                     = interpreter_frame_locals_offset - 1,
+    interpreter_frame_initial_sp_offset              = interpreter_frame_bcx_offset - 1,
 
     interpreter_frame_monitor_block_top_offset       = interpreter_frame_initial_sp_offset,
     interpreter_frame_monitor_block_bottom_offset    = interpreter_frame_initial_sp_offset,
