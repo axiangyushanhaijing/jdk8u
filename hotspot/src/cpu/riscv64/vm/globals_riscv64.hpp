@@ -83,7 +83,7 @@ define_pd_global(bool, ThreadLocalHandshakes, true);
 
 define_pd_global(intx, InlineSmallCode,          1000);
 
-#define ARCH_FLAGS(develop,                                             \
+#define ARCH_FLAGS_RISCV(develop,                                             \
                    product,                                             \
                    diagnostic,                                          \
                    experimental,                                        \
