@@ -500,14 +500,14 @@ void frame::interpreter_frame_set_mdx(intptr_t mdx) {
   *interpreter_frame_mdx_addr() = mdx;
 }
 
-intptr_t frame::interpreter_frame_mdp() const {
+address frame::interpreter_frame_mdp() const {
   assert(ProfileInterpreter, "must be profiling interpreter");
   assert(is_interpreted_frame(), "interpreted frame expected");
   intptr_t bcx = interpreter_frame_bcx();
   intptr_t mdx = interpreter_frame_mdx();
 
   assert(!is_bci(bcx), "should not access mdp during GC");
-  return mdx;
+  return (address)mdx;
 }
 
 void frame::interpreter_frame_set_mdp(address mdp) {

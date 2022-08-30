@@ -160,6 +160,7 @@ class TemplateInterpreter: public AbstractInterpreter {
   static int        distance_from_dispatch_table(TosState state){ return _active_table.distance_from(state); }
   static address*   normal_table(TosState state)                { return _normal_table.table_for(state); }
   static address*   normal_table()                              { return _normal_table.table_for(); }
+  static address*   safept_table(TosState state)                { return _safept_table.table_for(state); }
 
   // Support for invokes
   static address*   invoke_return_entry_table()                 { return _invoke_return_entry; }
