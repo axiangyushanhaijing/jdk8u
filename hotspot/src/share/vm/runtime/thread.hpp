@@ -918,6 +918,7 @@ class JavaThread: public Thread {
   // We load it from here to simplify the stack overflow check in assembly.
   address          _stack_overflow_limit;
   address          _reserved_stack_activation;
+ 
 
   // Compiler exception handling (NOTE: The _exception_oop is *NOT* the same as _pending_exception. It is
   // used to temp. parsing values into and out of the runtime system during exception handling for compiled
@@ -1088,6 +1089,7 @@ class JavaThread: public Thread {
  private:
   void set_ext_suspended()       { set_suspend_flag (_ext_suspended);  }
   void clear_ext_suspended()     { clear_suspend_flag(_ext_suspended); }
+  static size_t _stack_shadow_zone_size;
 
  public:
   void java_suspend();
@@ -1306,6 +1308,10 @@ class JavaThread: public Thread {
     { return (a <= stack_yellow_zone_base()) && (a >= stack_red_zone_base()); }
   bool in_stack_red_zone(address a)
     { return (a <= stack_red_zone_base()) && (a >= (address)((intptr_t)stack_base() - stack_size())); }
+  static size_t stack_shadow_zone_size() {
+    assert(_stack_shadow_zone_size > 0, "Don't call this before the field is initialized.");
+    return _stack_shadow_zone_size;
+  }
 
   void create_stack_guard_pages();
   void remove_stack_guard_pages();
@@ -1318,6 +1324,7 @@ class JavaThread: public Thread {
   inline bool stack_guard_zone_unused();
   inline bool stack_yellow_zone_disabled();
   inline bool stack_yellow_zone_enabled();
+  
 
   // Attempt to reguard the stack after a stack overflow may have occurred.
   // Returns true if (a) guard pages are not needed on this thread, (b) the

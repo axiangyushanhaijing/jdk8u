@@ -370,6 +370,7 @@ class CodeBuffer: public StackObj {
 
   address      _decode_begin;   // start address for decode
   address      decode_begin();
+  address      _last_insn; 
 
   void initialize_misc(const char * name) {
     // all pointers other than code_start/end and those inside the sections
@@ -573,6 +574,8 @@ class CodeBuffer: public StackObj {
     }
   }
 
+  address last_insn() const { return _last_insn; }
+  void set_last_insn(address a) { _last_insn = a; }
   // Code generation
   void relocate(address at, RelocationHolder const& rspec, int format = 0) {
     _insts.relocate(at, rspec, format);

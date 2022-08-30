@@ -135,6 +135,7 @@ class StubRoutines: AllStatic {
   static address _throw_NullPointerException_at_call_entry;
   static address _throw_StackOverflowError_entry;
   static address _handler_for_unsafe_access_entry;
+  static address _throw_delayed_StackOverflowError_entry;
 
   static address _atomic_xchg_entry;
   static address _atomic_xchg_ptr_entry;
@@ -148,6 +149,7 @@ class StubRoutines: AllStatic {
   static address _fence_entry;
   static address _d2i_wrapper;
   static address _d2l_wrapper;
+
 
   static jint    _fpu_cntrl_wrd_std;
   static jint    _fpu_cntrl_wrd_24;
@@ -292,6 +294,7 @@ class StubRoutines: AllStatic {
   static address throw_IncompatibleClassChangeError_entry(){ return _throw_IncompatibleClassChangeError_entry; }
   static address throw_NullPointerException_at_call_entry(){ return _throw_NullPointerException_at_call_entry; }
   static address throw_StackOverflowError_entry()          { return _throw_StackOverflowError_entry; }
+  static address throw_delayed_StackOverflowError_entry()  { return _throw_delayed_StackOverflowError_entry; }
 
   // Exceptions during unsafe access - should throw Java exception rather
   // than crash.
@@ -387,6 +390,7 @@ class StubRoutines: AllStatic {
   static address mulAdd()              {return _mulAdd; }
   static address montgomeryMultiply()  { return _montgomeryMultiply; }
   static address montgomerySquare()    { return _montgomerySquare; }
+  
 
   static address select_fill_function(BasicType t, bool aligned, const char* &name);
 

@@ -28,20 +28,20 @@
 #include "asm/assembler.hpp"
 #include "asm/assembler.inline.hpp"
 #include "compiler/disassembler.hpp"
-#include "gc/shared/barrierSet.hpp"
-#include "gc/shared/barrierSetAssembler.hpp"
-#include "gc/shared/cardTable.hpp"
-#include "gc/shared/cardTableBarrierSet.hpp"
+//#include "gc/shared/barrierSet.hpp"
+//#include "gc/shared/barrierSetAssembler.hpp"
+//#include "gc/shared/cardTable.hpp"
+//#include "gc/shared/cardTableBarrierSet.hpp"
 #include "interpreter/interpreter.hpp"
 #include "memory/resourceArea.hpp"
 #include "nativeInst_riscv64.hpp"
 #include "oops/accessDecorators.hpp"
-#include "oops/compressedOops.inline.hpp"
+//#include "oops/compressedOops.inline.hpp"
 #include "oops/klass.inline.hpp"
 #include "oops/oop.hpp"
 #include "runtime/biasedLocking.hpp"
-#include "runtime/interfaceSupport.inline.hpp"
-#include "runtime/jniHandles.inline.hpp"
+//#include "runtime/interfaceSupport.inline.hpp"
+//#include "runtime/jniHandles.inline.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/macros.hpp"
@@ -499,7 +499,7 @@ void MacroAssembler::debug64(char* msg, int64_t pc, int64_t regs[])
   } else {
     ttyLocker ttyl;
     ::tty->print_cr("=============== DEBUG MESSAGE: %s ================\n", msg);
-    assert(false, "DEBUG MESSAGE: %s", msg);
+    vmassert(false, "DEBUG MESSAGE: %s", msg);
   }
 }
 
@@ -1325,7 +1325,7 @@ int MacroAssembler::patch_oop(address insn_addr, address o) {
   // instruction.
   if (NativeInstruction::is_li32_at(insn_addr)) {
     // Move narrow OOP
-    narrowOop n = CompressedOops::encode((oop)o);
+    narrowOop n = oopDesc::encode_heap_oop((oop)o);
     return patch_imm_in_li32(insn_addr, (int32_t)n);
   } else if (NativeInstruction::is_movptr_at(insn_addr)) {
     // Move wide OOP
@@ -2134,7 +2134,7 @@ void MacroAssembler::serialize_memory(Register thread, Register tmp1, Register t
   sw(zr, Address(tmp1));
 }
 
-void MacroAssembler::safepoint_poll(Label& slow_path) {
+/*void MacroAssembler::safepoint_poll(Label& slow_path) {
   if (SafepointMechanism::uses_thread_local_poll()) {
     ld(t1, Address(xthread, Thread::polling_page_offset()));
     andi(t0, t1, SafepointMechanism::poll_bit());
@@ -2146,7 +2146,7 @@ void MacroAssembler::safepoint_poll(Label& slow_path) {
     assert(SafepointSynchronize::_not_synchronized == 0, "rewrite this code");
     bnez(t0, slow_path);
   }
-}
+}*/
 
 // Just like safepoint_poll, but use an acquiring load for thread-
 // local polling.
@@ -2160,7 +2160,7 @@ void MacroAssembler::safepoint_poll(Label& slow_path) {
 // This is to avoid a race when we're in a native->Java transition
 // racing the code which wakes up from a safepoint.
 //
-void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
+/*void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
   if (SafepointMechanism::uses_thread_local_poll()) {
     membar(MacroAssembler::AnyAny);
     ld(t1, Address(xthread, Thread::polling_page_offset()));
@@ -2170,7 +2170,7 @@ void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
   } else {
     safepoint_poll(slow_path);
   }
-}
+}*/
 
 void MacroAssembler::cmpxchgptr(Register oldv, Register newv, Register addr, Register tmp,
                                 Label &succeed, Label *fail) {
@@ -2943,7 +2943,7 @@ void MacroAssembler::get_thread(Register thread) {
 
 void MacroAssembler::load_byte_map_base(Register reg) {
   int32_t offset = 0;
-  jbyte *byte_map_base = ((CardTableBarrierSet*)(BarrierSet::barrier_set()))->card_table()->byte_map_base();
+  jbyte *byte_map_base = ((CardTableModRefBS*)(BarrierSet::barrier_set()))->card_table()->byte_map_base();
   la_patchable(reg, ExternalAddress((address)byte_map_base), offset);
   addi(reg, reg, offset);
 }
@@ -3015,7 +3015,7 @@ void MacroAssembler::reserved_stack_check() {
 }
 
 // Move the address of the polling page into dest.
-void MacroAssembler::get_polling_page(Register dest, address page, int32_t &offset, relocInfo::relocType rtype) {
+/*void MacroAssembler::get_polling_page(Register dest, address page, int32_t &offset, relocInfo::relocType rtype) {
   if (SafepointMechanism::uses_thread_local_poll()) {
     ld(dest, Address(xthread, Thread::polling_page_offset()));
   } else {
@@ -3023,13 +3023,19 @@ void MacroAssembler::get_polling_page(Register dest, address page, int32_t &offs
     assert(align == 0, "polling page must be page aligned");
     la_patchable(dest, Address(page, rtype), offset);
   }
-}
+}*/
 
 // Move the address of the polling page into dest.
 address MacroAssembler::read_polling_page(Register dest, address page, relocInfo::relocType rtype) {
-  int32_t offset = 0;
+ /* int32_t offset = 0;
   get_polling_page(dest, page, offset, rtype);
-  return read_polling_page(dest, offset, rtype);
+  return read_polling_page(dest, offset, rtype);*/
+  int32_t offset = 0;
+  la_patchable(dest, Address(page, rtype), offset);
+  InstructionMark im(this);
+  code_section()->relocate(inst_mark(), rtype);
+  ld(offset, Address(dest, offset));
+  return inst_mark();
 }
 
 // Read the polling page.  The address of the polling page must
@@ -3113,7 +3119,7 @@ address MacroAssembler::trampoline_call(Address entry, CodeBuffer *cbuf) {
 }
 
 address MacroAssembler::ic_call(address entry, jint method_index) {
-  RelocationHolder rh = virtual_call_Relocation::spec(pc(), method_index);
+  RelocationHolder rh = virtual_call_Relocation::spec(pc());
   movptr(t1, (address)Universe::non_oop_word());
   assert_cond(entry != NULL);
   return trampoline_call(Address(entry, rh));

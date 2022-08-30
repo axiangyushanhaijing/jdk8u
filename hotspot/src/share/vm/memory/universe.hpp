@@ -28,6 +28,7 @@
 #include "runtime/handles.hpp"
 #include "utilities/array.hpp"
 #include "utilities/growableArray.hpp"
+//#include "gc_interface/collectedHeap.hpp"
 
 // Universe is a name space holding known system classes and objects in the VM.
 //

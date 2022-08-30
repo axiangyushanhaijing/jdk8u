@@ -177,6 +177,8 @@ class Klass : public Metadata {
   // Remembered sets support for the oops in the klasses.
   jbyte _modified_oops;             // Card Table Equivalent (YC/CMS support)
   jbyte _accumulated_modified_oops; // Mod Union Equivalent (CMS support)
+  int _vtable_len;
+
 
 private:
   // This is an index into FileMapHeader::_classpath_entry_table[], to
@@ -480,6 +482,10 @@ protected:
   // NB: these can block for a mutex, like other functions with TRAPS arg.
   Klass* array_klass_or_null(int rank);
   Klass* array_klass_or_null();
+  static ByteSize vtable_start_offset();
+  static ByteSize vtable_length_offset() {
+    return byte_offset_of(Klass, _vtable_len);
+  }
 
   virtual oop protection_domain() const = 0;
 
