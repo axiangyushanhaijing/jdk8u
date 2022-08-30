@@ -255,6 +255,7 @@ class Thread: public ThreadShadow {
   friend class Pause_No_Safepoint_Verifier;
   friend class ThreadLocalStorage;
   friend class GC_locker;
+  volatile void* _polling_page;                 // Thread local polling page
 
   ThreadLocalAllocBuffer _tlab;                 // Thread-local eden
   jlong _allocated_bytes;                       // Cumulative number of bytes allocated on
@@ -613,6 +614,7 @@ protected:
 
   static ByteSize stack_base_offset()            { return byte_offset_of(Thread, _stack_base ); }
   static ByteSize stack_size_offset()            { return byte_offset_of(Thread, _stack_size ); }
+  static ByteSize polling_page_offset()          { return byte_offset_of(Thread, _polling_page); }
 
 #define TLAB_FIELD_OFFSET(name) \
   static ByteSize tlab_##name##_offset()         { return byte_offset_of(Thread, _tlab) + ThreadLocalAllocBuffer::name##_offset(); }
@@ -915,6 +917,7 @@ class JavaThread: public Thread {
   // Precompute the limit of the stack as used in stack overflow checks.
   // We load it from here to simplify the stack overflow check in assembly.
   address          _stack_overflow_limit;
+  address          _reserved_stack_activation;
 
   // Compiler exception handling (NOTE: The _exception_oop is *NOT* the same as _pending_exception. It is
   // used to temp. parsing values into and out of the runtime system during exception handling for compiled
@@ -1373,6 +1376,7 @@ class JavaThread: public Thread {
   static ByteSize is_method_handle_return_offset() { return byte_offset_of(JavaThread, _is_method_handle_return); }
   static ByteSize stack_guard_state_offset()     { return byte_offset_of(JavaThread, _stack_guard_state   ); }
   static ByteSize suspend_flags_offset()         { return byte_offset_of(JavaThread, _suspend_flags       ); }
+  static ByteSize reserved_stack_activation_offset() { return byte_offset_of(JavaThread, _reserved_stack_activation); }
 
   static ByteSize do_not_unlock_if_synchronized_offset() { return byte_offset_of(JavaThread, _do_not_unlock_if_synchronized); }
   static ByteSize should_post_on_exceptions_flag_offset() {

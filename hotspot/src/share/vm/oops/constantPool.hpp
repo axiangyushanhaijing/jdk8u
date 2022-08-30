@@ -101,6 +101,7 @@ class ConstantPool : public Metadata {
   // object index to original constant pool index
   jobject              _resolved_references;
   Array<u2>*           _reference_map;
+  Array<Klass*>*       _resolved_klasses;
 
   enum {
     _has_preresolution = 1,           // Flags
@@ -239,6 +240,8 @@ class ConstantPool : public Metadata {
   static int cache_offset_in_bytes()        { return offset_of(ConstantPool, _cache); }
   static int pool_holder_offset_in_bytes()  { return offset_of(ConstantPool, _pool_holder); }
   static int resolved_references_offset_in_bytes() { return offset_of(ConstantPool, _resolved_references); }
+  static int resolved_klasses_offset_in_bytes()    { return offset_of(ConstantPool, _resolved_klasses);}
+ 
 
   // Storing constants
 

@@ -280,7 +280,7 @@ void InterpreterMacroAssembler::load_resolved_reference_at_index(
   get_constant_pool(result);
   // load pointer for resolved_references[] objArray
   ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
-  ld(result, Address(result, ConstantPoolCache::resolved_references_offset_in_bytes()));
+  ld(result, Address(result, ConstantPool::resolved_references_offset_in_bytes()));
   resolve_oop_handle(result, tmp);
   // Add in the index
   addi(index, index, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
@@ -716,7 +716,7 @@ void InterpreterMacroAssembler::remove_activation(
   // get sender esp
   ld(esp,
      Address(fp, frame::interpreter_frame_sender_sp_offset * wordSize));
-  if (StackReservedPages > 0) {
+  if (pd_StackReservedPages > 0) {
     // testing if reserved zone needs to be re-enabled
     Label no_reserved_zone_enabling;
 
