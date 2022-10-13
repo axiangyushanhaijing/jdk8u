@@ -29,6 +29,7 @@
 #include "barrierSetAssembler_riscv64.hpp"
 #include "interpreter/bytecodeHistogram.hpp"
 #include "interpreter/bytecodeTracer.hpp"
+#include "barrierSet_riscv64.hpp"
 //#include "interpreter/interp_masm.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/interpreterRuntime.hpp"

@@ -30,55 +30,6 @@
 #include "barrierSetAssembler_riscv64.hpp"
 #include "asm/macroAssembler.hpp"
 #include "globals_riscv64.hpp"
-BarrierSetRv* BarrierSetRv::_barrier_set = NULL;
-/*
-class BarrierSetAssembler;
-// This class provides the interface between a barrier implementation and
-// the rest of the system.
-
-class BarrierSetRv: public CHeapObj<mtGC> {
-  friend class VMStructs;
-
-  static BarrierSetRv* _barrier_set;
-
-public:
- /* enum Name {
-#define BARRIER_SET_DECLARE_BS_ENUM(bs_name) bs_name ,
-    FOR_EACH_BARRIER_SET_DO(BARRIER_SET_DECLARE_BS_ENUM)
-#undef BARRIER_SET_DECLARE_BS_ENUM
-    UnknownBS
-  };
-
-private:
-
-  BarrierSetAssembler* _barrier_set_assembler;
-
-public:
-
-protected:
-  BarrierSetRv(BarrierSetAssembler* barrier_set_assembler) :
-    _barrier_set_assembler(barrier_set_assembler){}
-  ~BarrierSetRv() { }
-
-  template <class BarrierSetAssemblerT>
-  static BarrierSetAssembler* make_barrier_set_assembler() {
-    return NOT_ZERO(new BarrierSetAssemblerT()) ZERO_ONLY(NULL);
-  }
-
-
-public:
-  // Print a description of the memory for the barrier set
-  virtual void print_on(outputStream* st) const = 0;
-
-  static BarrierSetRv* barrier_set() { return _barrier_set; }
-  static void set_barrier_set(BarrierSetRv* barrier_set);
-
-  BarrierSetAssembler* barrier_set_assembler() {
-    assert(_barrier_set_assembler != NULL, "should be set");
-    return _barrier_set_assembler;
-  }
-
-};*/
 
 #define __ masm->
 

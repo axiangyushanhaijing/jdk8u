@@ -27,7 +27,7 @@
 #include "precompiled.hpp"
 #include "asm/macroAssembler.hpp"
 #include "asm/macroAssembler.inline.hpp"
-//#include "gc/shared/barrierSet.hpp"
+#include "barrierSet_riscv64.hpp"
 #include "barrierSetAssembler_riscv64.hpp"
 #include "interpreter/interpreter.hpp"
 #include "nativeInst_riscv64.hpp"

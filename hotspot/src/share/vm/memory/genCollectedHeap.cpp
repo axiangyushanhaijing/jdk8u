@@ -146,7 +146,7 @@ jint GenCollectedHeap::initialize() {
   set_barrier_set(rem_set()->bs());
 
   _gch = this;
-
+  
   for (i = 0; i < _n_gens; i++) {
     ReservedSpace this_rs = heap_rs.first_part(_gen_specs[i]->max_size(), false, false);
     _gens[i] = _gen_specs[i]->init(this_rs, i, rem_set());

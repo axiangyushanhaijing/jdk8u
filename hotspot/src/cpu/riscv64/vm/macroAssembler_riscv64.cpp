@@ -29,6 +29,7 @@
 #include "asm/assembler.inline.hpp"
 #include "compiler/disassembler.hpp"
 #include "barrierSetAssembler_riscv64.hpp"
+#include "barrierSet_riscv64.hpp"
 #include "cardTable_riscv64.hpp"
 #include "cardTableBarrierSet_riscv64.hpp"
 #include "interpreter/interpreter.hpp"

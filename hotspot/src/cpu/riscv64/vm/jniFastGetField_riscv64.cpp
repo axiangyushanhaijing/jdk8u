@@ -26,7 +26,7 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.hpp"
-//#include "gc/shared/barrierSet.hpp"
+#include "barrierSet_riscv64.hpp"
 #include "barrierSetAssembler_riscv64.hpp"
 #include "memory/resourceArea.hpp"
 #include "prims/jniFastGetField.hpp"

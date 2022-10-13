@@ -64,6 +64,7 @@ void universe2_init();  // dependent on codeCache_init and stubRoutines_init, lo
 void referenceProcessor_init();
 void jni_handles_init();
 void vmStructs_init();
+void gc_barrier_stubs_init();
 
 void vtableStubs_init();
 void InlineCacheBuffer_init();
@@ -130,6 +131,7 @@ jint init_globals() {
   if (!universe_post_init()) {
     return JNI_ERR;
   }
+  gc_barrier_stubs_init(); 
   javaClasses_init();   // must happen after vtable initialization
   stubRoutines_init2(); // note: StubRoutines need 2-phase init
 
