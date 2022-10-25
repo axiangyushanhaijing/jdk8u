@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_CARDTABLE_RISCV64_HPP
-#define SHARE_VM_CARDTABLE_RISCV64_HPP
+#ifndef SHARE_RISCV64_VM_CARDTABLE_RISCV64_HPP
+#define SHARE_RISCV64_VM_CARDTABLE_RISCV64_HPP
 
 #include "memory/allocation.hpp"
 #include "memory/memRegion.hpp"
@@ -264,4 +264,4 @@ public:
   void verify_dirty_region(MemRegion mr) PRODUCT_RETURN;
 };
 
-#endif // SHARE_VM_GC_SHARED_CARDTABLE_HPP
+#endif // SHARE_RISCV64_VM_CARDTABLE_RISCV64_HPP

@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_GC_SHARED_CARDTABLERS_HPP
-#define SHARE_VM_GC_SHARED_CARDTABLERS_HPP
+#ifndef SHARE_VM_RISCV64_CARDTABLERS_RISCV64_HPP
+#define SHARE_VM_RISCV64_CARDTABLERS_RISCV64_HPP
 
 #include "cardTable_riscv64.hpp"
 #include "memory/memRegion.hpp"
@@ -215,4 +215,4 @@ public:
   void do_MemRegion(MemRegion mr);
 };*/
 
-#endif // SHARE_VM_GC_SHARED_CARDTABLERS_HPP
+#endif // SHARE_VM_RISCV64_CARDTABLERS_RISCV64_HPP

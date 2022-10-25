@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP
-#define SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP
+#ifndef SHARE_RISCV64_VM_CARDTABLEBARRIERSET_RISCV64_HPP
+#define SHARE_RISCV64_VM_CARDTABLEBARRIERSET_RISCV64_HPP
 
 #include "modRefBarrierSet_riscv64.hpp"
 #include "barrierSetAssembler_riscv64.hpp"
@@ -127,4 +127,4 @@ struct BarrierSet::GetType<BarrierSet::CardTableBarrierSet> {
   typedef ::CardTableBarrierSet type;
 };
 */
-#endif // SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP
+#endif // SHARE_RISCV64_VM_CARDTABLEBARRIERSET_RISCV64_HPP
