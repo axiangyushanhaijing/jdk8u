@@ -55,6 +55,8 @@
 #include "utilities/vmError.hpp"
 #include "utilities/workgroup.hpp"
 #include "utilities/macros.hpp"
+#include "barrierSet_riscv64.hpp"
+#include "cardTableBarrierSet_riscv64.hpp"
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/concurrentMarkSweepThread.hpp"
 #include "gc_implementation/concurrentMarkSweep/vmCMSOperations.hpp"
@@ -144,6 +146,12 @@ jint GenCollectedHeap::initialize() {
 
   _rem_set = collector_policy()->create_rem_set(_reserved, n_covered_regions);
   set_barrier_set(rem_set()->bs());
+  //add riscv
+  _rem_set_rv = create_rem_set(reserved_region());
+  _rem_set_rv->initialize();
+  CardTableBarrierSet *bs = new CardTableBarrierSet(_rem_set_rv);
+  bs->initialize();
+  BarrierSetRv::set_barrier_set(bs);
 
   _gch = this;
   
@@ -164,6 +172,10 @@ jint GenCollectedHeap::initialize() {
 #endif // INCLUDE_ALL_GCS
 
   return JNI_OK;
+}
+
+CardTableRSRv* GenCollectedHeap::create_rem_set(const MemRegion& reserved_region) {
+  return new CardTableRSRv(reserved_region, false /* scan_concurrently */);
 }
 
 

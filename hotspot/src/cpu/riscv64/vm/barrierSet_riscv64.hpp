@@ -43,13 +43,13 @@ class BarrierSetRv: public CHeapObj<mtGC> {
 
   static BarrierSetRv* _barrier_set;
 
-/*public:
+public:
   enum Name {
 #define BARRIER_SET_DECLARE_BS_ENUM(bs_name) bs_name ,
     FOR_EACH_BARRIER_SET_DO(BARRIER_SET_DECLARE_BS_ENUM)
 #undef BARRIER_SET_DECLARE_BS_ENUM
     UnknownBS
-  };*/
+  };
 
   
 
@@ -93,6 +93,7 @@ protected:
   BarrierSetRv(BarrierSetAssembler* barrier_set_assembler) :
     _barrier_set_assembler(barrier_set_assembler){}
   ~BarrierSetRv() { }
+  Name _kind;
 
   template <class BarrierSetAssemblerT>
   static BarrierSetAssembler* make_barrier_set_assembler() {
@@ -106,7 +107,7 @@ public:
   // The allocation is safe to use iff it returns true. If not, the slow-path allocation
   // is redone until it succeeds. This can e.g. prevent allocations from the slow path
   // to be in old.
-  virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) {}
+ // virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj) {}
   virtual void on_thread_create(Thread* thread) {}
   virtual void on_thread_destroy(Thread* thread) {}
 
@@ -117,6 +118,7 @@ public:
 
   static BarrierSetRv* barrier_set() { return _barrier_set; }
   static void set_barrier_set(BarrierSetRv* barrier_set);
+  BarrierSetRv::Name kind() { return _kind; }
 
   BarrierSetAssembler* barrier_set_assembler() {
     assert(_barrier_set_assembler != NULL, "should be set");
@@ -138,6 +140,11 @@ public:
   // 3) Provide specializations for BarrierSetRv::GetName and BarrierSetRv::GetType.
 
 };
+template<typename T>
+inline T* barrier_set_cast(BarrierSetRv* bs) {
+  //assert(bs->is_a(BarrierSetRv::GetName<T>::value), "wrong type of barrier set");
+  return static_cast<T*>(bs);
+}
 
 
 #endif // SHARE_VM_GC_SHARED_BARRIERSET_HPP

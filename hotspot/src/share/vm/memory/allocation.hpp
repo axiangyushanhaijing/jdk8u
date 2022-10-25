@@ -672,6 +672,9 @@ class ResourceObj ALLOCATION_SUPER_CLASS_SPEC {
 #define FREE_C_HEAP_ARRAY(type, old, memflags) \
   FreeHeap((char*)(old), memflags)
 
+#define FREE_C_HEAP_ARRAY_RV(type, old) \
+  FreeHeap((char*)(old))
+
 // allocate type in heap without calling ctor
 #define NEW_C_HEAP_OBJ(type, memflags)\
   NEW_C_HEAP_ARRAY(type, 1, memflags)
