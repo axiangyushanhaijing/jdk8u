@@ -22,11 +22,13 @@
  *
  */
 
-#ifndef SHARE_VM_GC_SHARED_CARDTABLEBARRIERSET_HPP
-#define SHARE_VM_GC_SHARED_CARDTABLEBARRIERSET_HPP
+#ifndef SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP
+#define SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP
 
-#include "memory/modRefBarrierSet.hpp"
+#include "modRefBarrierSet_riscv64.hpp"
+#include "barrierSetAssembler_riscv64.hpp"
 #include "utilities/align.hpp"
+
 
 class CardTable;
 
@@ -42,7 +44,7 @@ class CardTable;
 // Closures used to scan dirty cards should take these
 // considerations into account.
 
-class CardTableBarrierSet: public ModRefBarrierSet {
+class CardTableBarrierSet: public ModRefBarrierSetRv {
   // Some classes get to look at some private stuff.
   friend class VMStructs;
  protected:
@@ -52,27 +54,31 @@ class CardTableBarrierSet: public ModRefBarrierSet {
   bool       _defer_initial_card_mark;
   CardTable* _card_table;
 
-  CardTableBarrierSet(BarrierSetAssembler* barrier_set_assembler);
-                 //     BarrierSetC1* barrier_set_c1,
-                 //     BarrierSetC2* barrier_set_c2,
-                  //    CardTable* card_table,
-                 //     const BarrierSet::FakeRtti& fake_rtti);
-
+  CardTableBarrierSet(BarrierSetAssembler* barrier_set_assembler,
+                      CardTable* card_table);
  public:
   CardTableBarrierSet(CardTable* card_table);
   ~CardTableBarrierSet();
 
   CardTable* card_table() const { return _card_table; }
 
-  /*virtual void initialize();
+  virtual void initialize();
 
   void write_region(MemRegion mr) {
     invalidate(mr);
   }
 
-  void write_ref_array_work(MemRegion mr);*/
+  void write_ref_array_work(MemRegion mr);
+  virtual void invalidate(MemRegion mr);
+  virtual void print_on(outputStream* st) const;
+  void initialize_deferred_card_mark_barriers();
+  void flush_deferred_card_mark_barrier(JavaThread* thread);
+  virtual void on_thread_detach(JavaThread* thread);
 
- public:
+  virtual void make_parsable(JavaThread* thread) { flush_deferred_card_mark_barrier(thread); }
+  virtual bool card_mark_must_follow_store() const;
+  //virtual void on_slowpath_allocation_exit(JavaThread* thread, oop new_obj);
+  /*public:
   // Record a reference update. Note that these versions are precise!
   // The scanning code has to handle the fact that the write barrier may be
   // either precise or imprecise. We make non-virtual inline variants of
@@ -80,7 +86,6 @@ class CardTableBarrierSet: public ModRefBarrierSet {
   /*template <DecoratorSet decorators, typename T>
   void write_ref_field_post(T* field, oop newVal);
 
-  virtual void invalidate(MemRegion mr);
 
   // ReduceInitialCardMarks
   void initialize_deferred_card_mark_barriers();
@@ -109,7 +114,7 @@ class CardTableBarrierSet: public ModRefBarrierSet {
   virtual void print_on(outputStream* st) const;
 
   template <DecoratorSet decorators, typename BarrierSetT = CardTableBarrierSet>
-  class AccessBarrier: public ModRefBarrierSet::AccessBarrier<decorators, BarrierSetT> {};*/
+  class AccessBarrier: public ModRefBarrierSetRv::AccessBarrier<decorators, BarrierSetT> {};*/
 };
 
 /*template<>
@@ -122,4 +127,4 @@ struct BarrierSet::GetType<BarrierSet::CardTableBarrierSet> {
   typedef ::CardTableBarrierSet type;
 };
 */
-#endif // SHARE_VM_GC_SHARED_CARDTABLEBARRIERSET_HPP
+#endif // SHARE_VM_CARDTABLEBARRIERSET_RISCV64_HPP

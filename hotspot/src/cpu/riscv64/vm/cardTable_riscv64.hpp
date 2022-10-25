@@ -22,14 +22,14 @@
  *
  */
 
-#ifndef SHARE_VM_GC_SHARED_CARDTABLE_HPP
-#define SHARE_VM_GC_SHARED_CARDTABLE_HPP
+#ifndef SHARE_VM_CARDTABLE_RISCV64_HPP
+#define SHARE_VM_CARDTABLE_RISCV64_HPP
 
 #include "memory/allocation.hpp"
 #include "memory/memRegion.hpp"
 #include "oops/oopsHierarchy.hpp"
 #include "utilities/align.hpp"
-#include "utilities/debug.hpp"
+#include "jni_riscv64.h"
 
 class CardTable: public CHeapObj<mtGC> {
   friend class VMStructs;
@@ -130,11 +130,11 @@ public:
 
   // Initialization utilities; covered_words is the size of the covered region
   // in, um, words.
-  /*inline size_t cards_required(size_t covered_words) {
+  inline size_t cards_required(size_t covered_words) {
     // Add one for a guard card, used to detect errors.
     const size_t words = align_up(covered_words, card_size_in_words);
     return words / card_size_in_words + 1;
-  }*/
+  }
 
   // Dirty the bytes corresponding to "mr" (not all of which must be
   // covered.)
@@ -145,27 +145,27 @@ public:
   void clear_MemRegion(MemRegion mr);
 
   // Return true if "p" is at the start of a card.
-  /*bool is_card_aligned(HeapWord* p) {
+  bool is_card_aligned(HeapWord* p) {
     jbyte* pcard = byte_for(p);
     return (addr_for(pcard) == p);
-  }*/
+  }
 
   // Mapping from address to card marking array entry
-  /*jbyte* byte_for(const void* p) const {
-    caedTableassert(_whole_heap.contains(p),
+  jbyte* byte_for(const void* p) const {
+    /*assert(_whole_heap.contains(p),
            "Attempt to access p = " PTR_FORMAT " out of bounds of "
            " card marking array's _whole_heap = [" PTR_FORMAT "," PTR_FORMAT ")",
-           p2i(p), p2i(_whole_heap.start()), p2i(_whole_heap.end()));
+           p2i(p), p2i(_whole_heap.start()), p2i(_whole_heap.end()));*/
     jbyte* result = &_byte_map_base[uintptr_t(p) >> card_shift];
     assert(result >= _byte_map && result < _byte_map + _byte_map_size,
            "out of bounds accessor for card marking array");
     return result;
-  }*/
+  }
 
   // The card table byte one after the card marking array
   // entry for argument address. Typically used for higher bounds
   // for loops iterating through the card table.
-  /*jbyte* byte_after(const void* p) const {
+  jbyte* byte_after(const void* p) const {
     return byte_for(p) + 1;
   }
 
@@ -182,26 +182,26 @@ public:
   }
 
   // Mapping from card marking array entry to address of first word
-  /*HeapWord* addr_for(const jbyte* p) const {
-    caedTableassert(p >= _byte_map && p < _byte_map + _byte_map_size,
+  HeapWord* addr_for(const jbyte* p) const {
+    /*assert(p >= _byte_map && p < _byte_map + _byte_map_size,
            "out of bounds access to card marking array. p: " PTR_FORMAT
            " _byte_map: " PTR_FORMAT " _byte_map + _byte_map_size: " PTR_FORMAT,
-           p2i(p), p2i(_byte_map), p2i(_byte_map + _byte_map_size));
+           p2i(p), p2i(_byte_map), p2i(_byte_map + _byte_map_size));*/
     size_t delta = pointer_delta(p, _byte_map_base, sizeof(jbyte));
     HeapWord* result = (HeapWord*) (delta << card_shift);
-    caedTableassert(_whole_heap.contains(result),
+   /* assert(_whole_heap.contains(result),
            "Returning result = " PTR_FORMAT " out of bounds of "
            " card marking array's _whole_heap = [" PTR_FORMAT "," PTR_FORMAT ")",
-           p2i(result), p2i(_whole_heap.start()), p2i(_whole_heap.end()));
+           p2i(result), p2i(_whole_heap.start()), p2i(_whole_heap.end()));*/
     return result;
-  }*/
+  }
 
   // Mapping from address to card marking array index.
-  /*size_t index_for(void* p) {
-    assert(_whole_heap.contains(p),
+  size_t index_for(void* p) {
+   /* assert(_whole_heap.contains(p),
            "Attempt to access p = " PTR_FORMAT " out of bounds of "
            " card marking array's _whole_heap = [" PTR_FORMAT "," PTR_FORMAT ")",
-           p2i(p), p2i(_whole_heap.start()), p2i(_whole_heap.end()));
+           p2i(p), p2i(_whole_heap.start()), p2i(_whole_heap.end()));*/
     return byte_for(p) - _byte_map;
   }
 
@@ -245,9 +245,8 @@ public:
   // Card marking array base (adjusted for heap low boundary)
   // This would be the 0th element of _byte_map, if the heap started at 0x0.
   // But since the heap starts at some higher address, this points to somewhere
-  // before the beginning of the actual _byte_map.*/
+  // before the beginning of the actual _byte_map.
   jbyte* byte_map_base() const { return _byte_map_base; }
-  /*
   bool scanned_concurrently() const { return _scanned_concurrently; }
 
   virtual bool is_in_young(oop obj) const = 0;
@@ -262,7 +261,7 @@ public:
   // !val_equals -> it will check that all cards covered by mr do not equal val
   void verify_region(MemRegion mr, jbyte val, bool val_equals) PRODUCT_RETURN;
   void verify_not_dirty_region(MemRegion mr) PRODUCT_RETURN;
-  void verify_dirty_region(MemRegion mr) PRODUCT_RETURN;*/
+  void verify_dirty_region(MemRegion mr) PRODUCT_RETURN;
 };
 
 #endif // SHARE_VM_GC_SHARED_CARDTABLE_HPP
