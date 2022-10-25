@@ -29,6 +29,7 @@
 #include "memory/collectorPolicy.hpp"
 #include "memory/generation.hpp"
 #include "memory/sharedHeap.hpp"
+#include "cardTableRS_riscv64.hpp"
 
 class SubTasksDone;
 
@@ -68,6 +69,7 @@ public:
 
   // The generational collector policy.
   GenCollectorPolicy* _gen_policy;
+  CardTableRSRv* _rem_set_rv;
 
   // Indicates that the most recent previous incremental collection failed.
   // The flag is cleared when an action is taken that might clear the
@@ -120,6 +122,7 @@ public:
 
   // Returns JNI_OK on success
   virtual jint initialize();
+  virtual CardTableRSRv* create_rem_set(const MemRegion& reserved_region);
   char* allocate(size_t alignment,
                  size_t* _total_reserved, int* _n_covered_regions,
                  ReservedSpace* heap_rs);
