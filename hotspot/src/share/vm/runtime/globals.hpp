@@ -2344,6 +2344,8 @@ class CommandLineFlags {
   diagnostic(bool, DeferInitialCardMark, false,                             \
           "When +ReduceInitialCardMarks, explicitly defer any that "        \
           "may arise from new_pre_store_barrier")                           \
+  product(bool, UseCondCardMark, false,                                     \
+          "Check for already marked card before updating card table")       \
                                                                             \
   diagnostic(bool, VerifyRememberedSets, false,                             \
           "Verify GC remembered sets")                                      \
@@ -4112,6 +4114,7 @@ class CommandLineFlags {
 #else
 #define MATERIALIZE_LP64_PRODUCT_FLAG(type, name, value, doc) /* flag is constant */
 #endif // _LP64
+
 
 RUNTIME_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_PD_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_EXPERIMENTAL_FLAG, DECLARE_NOTPRODUCT_FLAG, DECLARE_MANAGEABLE_FLAG, DECLARE_PRODUCT_RW_FLAG, DECLARE_LP64_PRODUCT_FLAG)
 
