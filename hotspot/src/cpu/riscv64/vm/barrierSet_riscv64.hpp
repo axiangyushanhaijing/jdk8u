@@ -25,7 +25,7 @@
 #ifndef SHARE_VM_MEMMORY_BARRIERSET_RISCV64_HPP
 #define SHARE_VM_MEMMORY_BARRIERSET_RISCV64_HPP
 
-#include "memory/barrierSetConfig.hpp"
+#include "barrierSetConfig_riscv64.hpp"
 #include "memory/memRegion.hpp"
 //#include "oops/access.hpp"
 //#include "oops/accessBackend.hpp"
