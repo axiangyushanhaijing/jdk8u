@@ -141,7 +141,7 @@ void MethodHandles::jump_to_lambda_form(MacroAssembler* _masm,
   __ verify_oop(method_temp);
   __ load_heap_oop_rv(method_temp, Address(method_temp, NONZERO(java_lang_invoke_LambdaForm::vmentry_offset_in_bytes())));
   __ verify_oop(method_temp);
-  __ load_heap_oop_rv(method_temp, Address(method_temp, NONZERO(java_lang_invoke_MemberName::method_offset_in_bytes())));
+  __ ld(method_temp, Address(method_temp, NONZERO(java_lang_invoke_MemberName::vmtarget_offset_in_bytes())));
   //__ verify_oop(method_temp);
  // __ access_load_at(T_ADDRESS, IN_HEAP, method_temp, Address(method_temp, NONZERO(java_lang_invoke_ResolvedMethodName::vmtarget_offset_in_bytes())), noreg, noreg);
  // __ ld(method_temp, Address(method_temp, NONZERO(java_lang_invoke_MemberName::vmtarget_offset_in_bytes())));
@@ -191,7 +191,7 @@ address MethodHandles::generate_method_handle_interpreter_entry(MacroAssembler* 
   address entry_point = __ pc();
 
   if (VerifyMethodHandles) {
-    assert(Method::intrinsic_id_size_in_bytes() == 2, "assuming Method::_intrinsic_id is u2");
+   // assert(Method::intrinsic_id_size_in_bytes() == 2, "assuming Method::_intrinsic_id is u2");
 
     Label L;
     BLOCK_COMMENT("verify_intrinsic_id {");
@@ -284,7 +284,7 @@ void MethodHandles::generate_method_handle_dispatch(MacroAssembler* _masm,
 
     Address member_clazz(    member_reg, NONZERO(java_lang_invoke_MemberName::clazz_offset_in_bytes()));
     Address member_vmindex(  member_reg, NONZERO(java_lang_invoke_MemberName::vmindex_offset_in_bytes()));
-    Address member_vmtarget( member_reg, NONZERO(java_lang_invoke_MemberName::method_offset_in_bytes()));
+    Address member_vmtarget( member_reg, NONZERO(java_lang_invoke_MemberName::vmtarget_offset_in_bytes()));
     //Address vmtarget_method( xmethod, NONZERO(java_lang_invoke_ResolvedMethodName::vmtarget_offset_in_bytes()));
 
     Register temp1_recv_klass = temp1;
