@@ -26,12 +26,11 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
-#include "gc/shared/barrierSet.hpp"
-#include "gc/shared/barrierSetAssembler.hpp"
+#include "barrierSetAssembler_riscv64.hpp"
 #include "interp_masm_riscv64.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/interpreterRuntime.hpp"
-#include "logging/log.hpp"
+//#include "log_riscv64/log.hpp"
 #include "oops/arrayOop.hpp"
 #include "oops/markOop.hpp"
 #include "oops/method.hpp"
@@ -41,10 +40,10 @@
 #include "runtime/basicLock.hpp"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/frame.inline.hpp"
-#include "runtime/safepointMechanism.hpp"
+#include "safepointMechanism_riscv64.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/thread.inline.hpp"
-
+#include "prims/jvmtiRedefineClassesTrace.hpp"
 
 void InterpreterMacroAssembler::narrow(Register result) {
   // Get method->_constMethod->_result_type
@@ -273,14 +272,30 @@ void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,
 }
 
 // Load object from cpool->resolved_references(index)
+/*void InterpreterMacroAssembler::load_resolved_reference_at_index(
+                                Register result, Register index, Register tmp) {
+  assert_different_registers(result, index);
+
+  get_constant_pool(result);
+  // load pointer for resolved_references[] objArray
+ // ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
+  ld(result, Address(result, ConstantPool::resolved_references_offset_in_bytes()));
+  //resolve_oop_handle(result, tmp);
+  // Add in the index
+  addi(index, index, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
+  slli(index, index, LogBytesPerHeapOop);
+  add(result, result, index);
+ // load_heap_oop(result, Address(result, 0));
+ load_heap_oop_rv(result, Address(result, arrayOopDesc::base_offset_in_bytes(T_OBJECT)));
+}*/
 void InterpreterMacroAssembler::load_resolved_reference_at_index(
                                 Register result, Register index, Register tmp) {
   assert_different_registers(result, index);
 
   get_constant_pool(result);
   // load pointer for resolved_references[] objArray
-  ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
-  ld(result, Address(result, ConstantPoolCache::resolved_references_offset_in_bytes()));
+ // ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
+  ld(result, Address(result, ConstantPool::resolved_references_offset_in_bytes()));
   resolve_oop_handle(result, tmp);
   // Add in the index
   addi(index, index, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
@@ -289,17 +304,17 @@ void InterpreterMacroAssembler::load_resolved_reference_at_index(
   load_heap_oop(result, Address(result, 0));
 }
 
-void InterpreterMacroAssembler::load_resolved_klass_at_offset(
-                                Register cpool, Register index, Register klass, Register temp) {
-  slli(temp, index, LogBytesPerWord);
-  add(temp, temp, cpool);
-  lhu(temp, Address(temp, sizeof(ConstantPool))); // temp = resolved_klass_index
-  ld(klass, Address(cpool, ConstantPool::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
-  slli(temp, temp, LogBytesPerWord);
-  add(klass, klass, temp);
-  ld(klass, Address(klass, Array<Klass*>::base_offset_in_bytes()));
-}
 
+void InterpreterMacroAssembler::load_resolved_klass_at_offset(
+                                 Register cpool, Register index, Register temp, Register temp2) {
+  slli(temp2, index, LogBytesPerWord);
+  add(temp, temp2, cpool);
+  ld(temp, Address(temp, sizeof(ConstantPool))); // temp = resolved_klass_index
+  //ld(klass, Address(cpool, ConstantPool::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
+  //slli(temp, temp, LogBytesPerWord);
+  //add(klass, klass, temp);
+ // ld(klass, Address(klass, Array<Klass*>::base_offset_in_bytes()));
+}
 // Generate a subtype check: branch to ok_is_subtype if sub_klass is a
 // subtype of super_klass.
 //
@@ -507,15 +522,15 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
 
   Label safepoint;
   address* const safepoint_table = Interpreter::safept_table(state);
-  bool needs_thread_local_poll = generate_poll &&
+   /* bool needs_thread_local_poll = generate_poll &&
     SafepointMechanism::uses_thread_local_poll() && table != safepoint_table;
 
-  if (needs_thread_local_poll) {
+if (needs_thread_local_poll) {
     NOT_PRODUCT(block_comment("Thread-local Safepoint poll"));
     ld(t1, Address(xthread, Thread::polling_page_offset()));
     andi(t1, t1, 1 << exact_log2(SafepointMechanism::poll_bit()));
     bnez(t1, safepoint);
-  }
+  }*/
   if (table == Interpreter::dispatch_table(state)) {
     li(t1, Interpreter::distance_from_dispatch_table(state));
     add(t1, Rs, t1);
@@ -529,14 +544,14 @@ void InterpreterMacroAssembler::dispatch_base(TosState state,
   ld(t1, Address(t1));
   jr(t1);
 
-  if (needs_thread_local_poll) {
+ /* if (needs_thread_local_poll) {
     bind(safepoint);
     la(t1, ExternalAddress((address)safepoint_table));
     slli(Rs, Rs, 3);
     add(t1, t1, Rs);
     ld(t1, Address(t1));
     jr(t1);
-  }
+  }*/
 }
 
 void InterpreterMacroAssembler::dispatch_only(TosState state, bool generate_poll, Register Rs) {
@@ -716,7 +731,7 @@ void InterpreterMacroAssembler::remove_activation(
   // get sender esp
   ld(esp,
      Address(fp, frame::interpreter_frame_sender_sp_offset * wordSize));
-  if (StackReservedPages > 0) {
+  /*if (StackReservedPages > 0) {
     // testing if reserved zone needs to be re-enabled
     Label no_reserved_zone_enabling;
 
@@ -730,7 +745,7 @@ void InterpreterMacroAssembler::remove_activation(
     should_not_reach_here();
 
     bind(no_reserved_zone_enabling);
-  }
+  }*/
   // remove frame anchor
   leave();
   // If we're returning to interpreted code we will shortly be
@@ -902,7 +917,7 @@ void InterpreterMacroAssembler::unlock_object(Register lock_reg)
 void InterpreterMacroAssembler::test_method_data_pointer(Register mdp,
                                                          Label& zero_continue) {
   assert(ProfileInterpreter, "must be profiling interpreter");
-  ld(mdp, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+  ld(mdp, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
   beqz(mdp, zero_continue);
 }
 
@@ -921,7 +936,7 @@ void InterpreterMacroAssembler::set_method_data_pointer_for_bcp() {
   ld(x11, Address(xmethod, in_bytes(Method::method_data_offset())));
   la(x11, Address(x11, in_bytes(MethodData::data_offset())));
   add(x10, x11, x10);
-  sd(x10, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+  sd(x10, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
   bind(set_mdp);
   pop_reg(0xc00, sp);
 }
@@ -1046,7 +1061,7 @@ void InterpreterMacroAssembler::update_mdp_by_offset(Register mdp_in,
   assert(ProfileInterpreter, "must be profiling interpreter");
   ld(t1, Address(mdp_in, offset_of_disp));
   add(mdp_in, mdp_in, t1);
-  sd(mdp_in, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+  sd(mdp_in, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
 }
 
 void InterpreterMacroAssembler::update_mdp_by_offset(Register mdp_in,
@@ -1056,7 +1071,7 @@ void InterpreterMacroAssembler::update_mdp_by_offset(Register mdp_in,
   add(t1, mdp_in, reg);
   ld(t1, Address(t1, offset_of_disp));
   add(mdp_in, mdp_in, t1);
-  sd(mdp_in, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+  sd(mdp_in, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
 }
 
 
@@ -1064,7 +1079,7 @@ void InterpreterMacroAssembler::update_mdp_by_constant(Register mdp_in,
                                                        int constant) {
   assert(ProfileInterpreter, "must be profiling interpreter");
   addi(mdp_in, mdp_in, constant);
-  sd(mdp_in, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+  sd(mdp_in, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
 }
 
 
@@ -1522,7 +1537,7 @@ void InterpreterMacroAssembler::notify_method_entry() {
   }
 
   // RedefineClasses() tracing support for obsolete method entry
-  if (log_is_enabled(Trace, redefine, class, obsolete)) {
+  if (RC_TRACE_IN_RANGE(0x00001000, 0x00002000)) {
     get_method(c_rarg1);
     call_VM_leaf(
       CAST_FROM_FN_PTR(address, SharedRuntime::rc_trace_method_entry),
@@ -1797,7 +1812,7 @@ void InterpreterMacroAssembler::profile_arguments_type(Register mdp, Register ca
         slli(tmp, tmp, exact_log2(DataLayout::cell_size));
         add(mdp, mdp, tmp);
       }
-      sd(mdp, Address(fp, frame::interpreter_frame_mdp_offset * wordSize));
+      sd(mdp, Address(fp, frame::interpreter_frame_mdx_offset * wordSize));
     } else {
       assert(MethodData::profile_return(), "either profile call args or call ret");
       update_mdp_by_constant(mdp, in_bytes(TypeEntriesAtCall::return_only_size()));
@@ -1819,7 +1834,7 @@ void InterpreterMacroAssembler::profile_return_type(Register mdp, Register ret, 
     test_method_data_pointer(mdp, profile_continue);
 
     if (MethodData::profile_return_jsr292_only()) {
-      assert(Method::intrinsic_id_size_in_bytes() == 2, "assuming Method::_intrinsic_id is u2");
+     // assert(Method::intrinsic_id_size_in_bytes() == 2, "assuming Method::_intrinsic_id is u2");
 
       // If we don't profile all invoke bytecodes we must make sure
       // it's a bytecode we indeed profile. We can't go back to the

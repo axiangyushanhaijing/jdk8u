@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -141,6 +141,7 @@ class Universe: AllStatic {
 
   static oop          _main_thread_group;             // Reference to the main thread group object
   static oop          _system_thread_group;           // Reference to the system thread group object
+  static oop          _the_null_sentinel;
 
   static objArrayOop  _the_empty_class_klass_array;   // Canonicalized obj array of type java.lang.Class
   static oop          _the_null_string;               // A cache of "null" as a Java string
@@ -157,6 +158,8 @@ class Universe: AllStatic {
   static oop          _out_of_memory_error_array_size;
   static oop          _out_of_memory_error_gc_overhead_limit;
   static oop          _out_of_memory_error_realloc_objects;
+  // preallocated cause message for delayed StackOverflowError
+  static oop          _delayed_stack_overflow_error_message;
 
   static Array<int>*       _the_empty_int_array;    // Canonicalized int array
   static Array<u2>*        _the_empty_short_array;  // Canonicalized short array
@@ -282,6 +285,7 @@ class Universe: AllStatic {
   static oop long_mirror()                  { return check_mirror(_long_mirror); }
   static oop short_mirror()                 { return check_mirror(_short_mirror); }
   static oop void_mirror()                  { return check_mirror(_void_mirror); }
+  static address      the_null_sentinel_addr()        { return (address) &_the_null_sentinel;  }
 
   // table of same
   static oop _mirrors[T_VOID+1];
@@ -329,6 +333,8 @@ class Universe: AllStatic {
   static oop out_of_memory_error_array_size()         { return gen_out_of_memory_error(_out_of_memory_error_array_size); }
   static oop out_of_memory_error_gc_overhead_limit()  { return gen_out_of_memory_error(_out_of_memory_error_gc_overhead_limit);  }
   static oop out_of_memory_error_realloc_objects()    { return gen_out_of_memory_error(_out_of_memory_error_realloc_objects);  }
+  static oop delayed_stack_overflow_error_message()   { return _delayed_stack_overflow_error_message; }
+
 
   // Accessors needed for fast allocation
   static Klass** boolArrayKlassObj_addr()           { return &_boolArrayKlassObj;   }
@@ -405,9 +411,6 @@ class Universe: AllStatic {
   static bool        on_page_boundary(void* addr);
   static bool        should_fill_in_stack_trace(Handle throwable);
   static void check_alignment(uintx size, uintx alignment, const char* name);
-
-  // Finalizer support.
-  static void run_finalizers_on_exit();
 
   // Iteration
 

@@ -32,7 +32,9 @@
 #include "utilities/macros.hpp"
 #include "vm_version_riscv64.hpp"
 
-#include OS_HEADER_INLINE(os)
+#ifdef TARGET_OS_FAMILY_linux
+# include "os_linux.inline.hpp"
+#endif
 
 #include <sys/auxv.h>
 #include <asm/hwcap.h>
@@ -76,6 +78,7 @@ class VM_Version_StubGenerator: public StubCodeGenerator {
   ~VM_Version_StubGenerator() {}
 };
 
+//int VM_Version::_features_str;
 void VM_Version::get_processor_features() {
   if (FLAG_IS_DEFAULT(UseFMA)) {
     FLAG_SET_DEFAULT(UseFMA, true);
@@ -166,5 +169,10 @@ void VM_Version::get_c2_processor_features() {
 
 void VM_Version::initialize() {
   get_processor_features();
-  UNSUPPORTED_OPTION(CriticalJNINatives);
+    if (CriticalJNINatives) {
+    if (FLAG_IS_CMDLINE(CriticalJNINatives)) {
+      warning("CriticalJNINatives specified, but not supported in this VM");
+    }
+    FLAG_SET_DEFAULT(CriticalJNINatives, false);
+  }
 }

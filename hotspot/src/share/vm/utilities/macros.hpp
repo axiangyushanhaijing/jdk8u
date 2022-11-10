@@ -316,7 +316,7 @@
 #define NOT_SHARK(code) code
 #endif
 
-#if defined(IA32) || defined(AMD64)
+#if defined(IA32) || defined(AMD64) 
 #define X86
 #define X86_ONLY(code) code
 #define NOT_X86(code)
@@ -360,6 +360,22 @@
 #else
 #define AARCH64_ONLY(code)
 #define NOT_AARCH64(code) code
+#endif
+
+#ifdef RISCV64
+#define RISCV64_ONLY(code) code
+#define NOT_RISCV64(code)
+#define NO_FLAG_REG
+#define NO_FLAGREG_ONLY(code) code
+#define HAS_FLAGREG_ONLY(code)
+#define NO_FLAGREG_ONLY_ARG(arg) arg,
+#else
+#define RISCV64_ONLY(code)
+#define NOT_RISCV64(code) code
+#define HAS_FLAG_REG
+#define NO_FLAGREG_ONLY(code)
+#define HAS_FLAGREG_ONLY(code) code
+#define NO_FLAGREG_ONLY_ARG(arg)
 #endif
 
 #ifdef SPARC

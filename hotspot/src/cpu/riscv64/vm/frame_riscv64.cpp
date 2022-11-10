@@ -59,7 +59,9 @@ bool frame::safe_for_sender(JavaThread *thread) {
   address   unextended_sp = (address)_unextended_sp;
 
   // consider stack guards when trying to determine "safe" stack pointers
-static size_t stack_guard_size = os::uses_stack_guard_pages() ? (StackYellowPages + StackRedPages) * os::vm_page_size() : 0;
+
+  //static size_t stack_guard_size = os::uses_stack_guard_pages() ?
+  //  (JavaThread::stack_red_zone_size() + JavaThread::stack_yellow_zone_size()) : 0;
   assert_cond(thread != NULL);
   size_t usable_stack_size = thread->stack_size() - stack_guard_size;
 
@@ -239,7 +241,7 @@ static size_t stack_guard_size = os::uses_stack_guard_pages() ? (StackYellowPage
     // because the return address counts against the callee's frame.
 
     if (sender_blob->frame_size() <= 0) {
-      assert(!sender_blob->is_compiled(), "should count return address at least");
+      assert(!sender_blob->is_nmethod(), "should count return address at least");
       return false;
     }
 
@@ -296,7 +298,9 @@ void frame::patch_pc(Thread* thread, address pc) {
     _pc = pc;
   }
 }
-
+void frame::pd_gc_epilog() {
+  // nothing done here now
+}
 bool frame::is_interpreted_frame() const  {
   return Interpreter::contains(pc());
 }
@@ -374,7 +378,7 @@ frame frame::sender_for_entry_frame(RegisterMap* map) const {
 // Verifies the calculated original PC of a deoptimization PC for the
 // given unextended SP.
 #ifdef ASSERT
-void frame::verify_deopt_original_pc(CompiledMethod* nm, intptr_t* unextended_sp) {
+void frame::verify_deopt_original_pc(nmethod* nm, intptr_t* unextended_sp, bool is_method_handle_return) {
   frame fr;
 
   // This is ugly but it's better than to change {get,set}_original_pc
@@ -384,8 +388,8 @@ void frame::verify_deopt_original_pc(CompiledMethod* nm, intptr_t* unextended_sp
 
   assert_cond(nm != NULL);
   address original_pc = nm->get_original_pc(&fr);
-  assert(nm->insts_contains_inclusive(original_pc),
-         "original PC must be in the main code section of the the compiled method (or must be immediately following it)");
+  assert(nm->insts_contains(original_pc), "original PC must be in nmethod");
+  assert(nm->is_method_handle_return(original_pc) == is_method_handle_return, "must be");
 }
 #endif
 
@@ -638,7 +642,7 @@ void frame::describe_pd(FrameValues& values, int frame_no) {
     DESCRIBE_FP_OFFSET(interpreter_frame_mirror);
     DESCRIBE_FP_OFFSET(interpreter_frame_cache);
     DESCRIBE_FP_OFFSET(interpreter_frame_locals);
-    DESCRIBE_FP_OFFSET(interpreter_frame_bcp);
+    DESCRIBE_FP_OFFSET(interpreter_frame_bcx);
     DESCRIBE_FP_OFFSET(interpreter_frame_initial_sp);
   }
 }
@@ -670,7 +674,7 @@ frame::frame(void* ptr_sp, void* ptr_fp, void* pc) {
   init((intptr_t*)ptr_sp, (intptr_t*)ptr_fp, (address)pc);
 }
 
-void frame::pd_ps() {}
+void pd_ps(frame f) {}
 #endif
 
 void JavaFrameAnchor::make_walkable(JavaThread* thread) {

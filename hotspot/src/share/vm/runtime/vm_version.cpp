@@ -83,6 +83,9 @@ int Abstract_VM_Version::_vm_build_number = 0;
 bool Abstract_VM_Version::_initialized = false;
 int Abstract_VM_Version::_parallel_worker_threads = 0;
 bool Abstract_VM_Version::_parallel_worker_threads_initialized = false;
+const char* Abstract_VM_Version::_features_string = "";
+const char* VM_Version::_features_str;
+
 
 void Abstract_VM_Version::initialize() {
   if (_initialized) {
@@ -201,7 +204,8 @@ const char* Abstract_VM_Version::jre_release_version() {
                  IA64_ONLY("ia64")               \
                  AMD64_ONLY("amd64")             \
                  AARCH64_ONLY("aarch64")         \
-                 SPARC_ONLY("sparc")
+                 SPARC_ONLY("sparc")             \
+                 RISCV64_ONLY("riscv64")
 #endif // ZERO
 #endif
 
@@ -254,6 +258,16 @@ const char* Abstract_VM_Version::internal_vm_info_string() {
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.2 (VS2019)"
       #elif _MSC_VER == 1923
         #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.3 (VS2019)"
+      #elif _MSC_VER == 1924
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.4 (VS2019)"
+      #elif _MSC_VER == 1925
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.5 (VS2019)"
+      #elif _MSC_VER == 1926
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.6 (VS2019)"
+      #elif _MSC_VER == 1927
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.7 (VS2019)"
+      #elif _MSC_VER == 1928
+        #define HOTSPOT_BUILD_COMPILER "MS VC++ 16.8 (VS2019)"
       #else
         #define HOTSPOT_BUILD_COMPILER "unknown MS VC++:" XSTR(_MSC_VER)
       #endif

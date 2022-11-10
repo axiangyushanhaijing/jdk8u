@@ -50,7 +50,7 @@ extern "C" void bad_compiled_vtable_index(JavaThread* thread, oop receiver, int 
 
 VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
   // Read "A word on VtableStub sizing" in share/code/vtableStubs.hpp for details on stub sizing.
-  const int stub_code_length = code_size_limit(true);
+  const int stub_code_length = VtableStub::pd_code_size_limit(true);
   VtableStub* s = new(stub_code_length) VtableStub(true, vtable_index);
   // Can be NULL if there is no free space in the code cache.
   if (s == NULL) {
@@ -89,7 +89,7 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
     start_pc = __ pc();
 
     // check offset vs vtable length
-    __ lwu(t0, Address(t2, Klass::vtable_length_offset()));
+    __ lwu(t0, Address(t2, InstanceKlass::vtable_length_offset()));
     __ mvw(t1, vtable_index * vtableEntry::size());
     __ bgt(t0, t1, L);
     __ enter();
@@ -100,7 +100,7 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
     const ptrdiff_t codesize = __ pc() - start_pc;
     slop_delta = estimate - codesize;  // call_VM varies in length, depending on data
     slop_bytes += slop_delta;
-    assert(slop_delta >= 0, "vtable #%d: Code size estimate (%d) for DebugVtables too small, required: %d", vtable_index, (int)estimate, (int)codesize);
+    vmassert(slop_delta >= 0, "vtable #%d: Code size estimate (%d) for DebugVtables too small, required: %d", vtable_index, (int)estimate, (int)codesize);
 
     __ leave();
     __ bind(L);
@@ -114,7 +114,7 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
   // 1 instruction (best case):ld * 1
   slop_delta = 16 - (int)(__ pc() - start_pc);
   slop_bytes += slop_delta;
-  assert(slop_delta >= 0, "negative slop(%d) encountered, adjust code size estimate!", slop_delta);
+  vmassert(slop_delta >= 0, "negative slop(%d) encountered, adjust code size estimate!", slop_delta);
 
 #ifndef PRODUCT
   if (DebugVtables) {
@@ -135,14 +135,23 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
   __ jr(t0);
 
   masm->flush();
-  bookkeeping(masm, tty, s, npe_addr, ame_addr, true, vtable_index, slop_bytes, 0);
+ // bookkeeping(masm, tty, s, npe_addr, ame_addr, true, vtable_index, slop_bytes, 0);
+   if (PrintMiscellaneous && (WizardMode || Verbose)) {
+    tty->print_cr("vtable #%d at "PTR_FORMAT"[%d] left over: %d",
+                  vtable_index, p2i(s->entry_point()),
+                  (int)(s->code_end() - s->entry_point()),
+                  (int)(s->code_end() - __ pc()));
+  }
+  guarantee(__ pc() <= s->code_end(), "overflowed buffer");
+
+  s->set_exception_points(npe_addr, ame_addr);
 
   return s;
 }
 
 VtableStub* VtableStubs::create_itable_stub(int itable_index) {
   // Read "A word on VtableStub sizing" in share/code/vtableStubs.hpp for details on stub sizing.
-  const int stub_code_length = code_size_limit(false);
+  const int stub_code_length = VtableStub::pd_code_size_limit(false);
   VtableStub* s = new(stub_code_length) VtableStub(false, itable_index);
   // Can be NULL if there is no free space in the code cache.
   if (s == NULL) {
@@ -219,7 +228,7 @@ VtableStub* VtableStubs::create_itable_stub(int itable_index) {
   const ptrdiff_t codesize = typecheckSize + lookupSize;
   slop_delta = (int)(estimate - codesize);
   slop_bytes += slop_delta;
-  assert(slop_delta >= 0, "itable #%d: Code size estimate (%d) for lookup_interface_method too small, required: %d", itable_index, (int)estimate, (int)codesize);
+  vmassert(slop_delta >= 0, "itable #%d: Code size estimate (%d) for lookup_interface_method too small, required: %d", itable_index, (int)estimate, (int)codesize);
 
 #ifdef ASSERT
   if (DebugVtables) {
@@ -244,11 +253,21 @@ VtableStub* VtableStubs::create_itable_stub(int itable_index) {
   // We force resolving of the call site by jumping to the "handle
   // wrong method" stub, and so let the interpreter runtime do all the
   // dirty work.
-  assert(SharedRuntime::get_handle_wrong_method_stub() != NULL, "check initialization order");
+ assert(SharedRuntime::get_handle_wrong_method_stub() != NULL, "check initialization order");
   __ far_jump(RuntimeAddress(SharedRuntime::get_handle_wrong_method_stub()));
 
   masm->flush();
-  bookkeeping(masm, tty, s, npe_addr, ame_addr, false, itable_index, slop_bytes, 0);
+  /* bookkeeping(masm, tty, s, npe_addr, ame_addr, false, itable_index, slop_bytes, 0);*/
+  if (PrintMiscellaneous && (WizardMode || Verbose)) {
+    tty->print_cr("itable #%d at "PTR_FORMAT"[%d] left over: %d",
+                  itable_index, p2i(s->entry_point()),
+                  (int)(s->code_end() - s->entry_point()),
+                  (int)(s->code_end() - __ pc()));
+  }
+  guarantee(__ pc() <= s->code_end(), "overflowed buffer");
+
+  s->set_exception_points(npe_addr, ame_addr);
+
 
   return s;
 }

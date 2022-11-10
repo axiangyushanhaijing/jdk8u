@@ -53,6 +53,7 @@ address StubRoutines::_throw_AbstractMethodError_entry          = NULL;
 address StubRoutines::_throw_IncompatibleClassChangeError_entry = NULL;
 address StubRoutines::_throw_NullPointerException_at_call_entry = NULL;
 address StubRoutines::_throw_StackOverflowError_entry           = NULL;
+address StubRoutines::_throw_delayed_StackOverflowError_entry   = NULL;
 address StubRoutines::_handler_for_unsafe_access_entry          = NULL;
 jint    StubRoutines::_verify_oop_count                         = 0;
 address StubRoutines::_verify_oop_subroutine_entry              = NULL;
@@ -111,6 +112,13 @@ address StubRoutines::_checkcast_arraycopy               = NULL;
 address StubRoutines::_checkcast_arraycopy_uninit        = NULL;
 address StubRoutines::_unsafe_arraycopy                  = NULL;
 address StubRoutines::_generic_arraycopy                 = NULL;
+address StubRoutines::_dexp = NULL;
+address StubRoutines::_dlog = NULL;
+address StubRoutines::_dlog10 = NULL;
+address StubRoutines::_dpow = NULL;
+address StubRoutines::_dsin = NULL;
+address StubRoutines::_dcos = NULL;
+address StubRoutines::_dtan = NULL;
 
 
 address StubRoutines::_jbyte_fill;

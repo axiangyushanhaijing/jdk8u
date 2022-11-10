@@ -30,16 +30,15 @@
 #include "code/debugInfoRec.hpp"
 #include "code/icBuffer.hpp"
 #include "code/vtableStubs.hpp"
-#include "interpreter/interp_masm.hpp"
 #include "interpreter/interpreter.hpp"
-#include "logging/log.hpp"
 #include "memory/resourceArea.hpp"
 #include "oops/compiledICHolder.hpp"
-#include "runtime/safepointMechanism.hpp"
+#include "safepointMechanism_riscv64.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/vframeArray.hpp"
 #include "utilities/align.hpp"
 #include "vmreg_riscv64.inline.hpp"
+#include "prims/jvmtiRedefineClassesTrace.hpp"
 #ifdef COMPILER1
 #include "c1/c1_Runtime1.hpp"
 #endif
@@ -1115,7 +1114,7 @@ static void gen_special_dispatch(MacroAssembler* masm,
   } else if (iid == vmIntrinsics::_invokeBasic) {
     has_receiver = true;
   } else {
-    fatal("unexpected intrinsic id %d", iid);
+    fatal(err_msg_res("unexpected intrinsic id %d", iid));
   }
 
   if (member_reg != noreg) {
@@ -1183,12 +1182,12 @@ static void gen_special_dispatch(MacroAssembler* masm,
 //    return to caller
 //
 nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
-                                                const methodHandle& method,
+                                                 methodHandle method,
                                                 int compile_id,
                                                 BasicType* in_sig_bt,
                                                 VMRegPair* in_regs,
-                                                BasicType ret_type,
-                                                address critical_entry) {
+                                                BasicType ret_type
+                                                ) {
   assert_cond(masm != NULL && in_sig_bt != NULL && in_regs != NULL);
   if (method->is_method_handle_intrinsic()) {
     vmIntrinsics::ID iid = method->intrinsic_id();
@@ -1215,7 +1214,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
                                        (OopMapSet*)NULL);
   }
   bool is_critical_native = true;
-  address native_func = critical_entry;
+  address native_func = method->critical_native_function();
   if (native_func == NULL) {
     native_func = method->native_function();
     is_critical_native = false;
@@ -1432,7 +1431,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   // Generate stack overflow check
   if (UseStackBanging) {
-    __ bang_stack_with_offset(JavaThread::stack_shadow_zone_size());
+    __ bang_stack_with_offset(StackShadowPages*os::vm_page_size());
   } else {
     Unimplemented();
   }
@@ -1642,7 +1641,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   }
 
   // RedefineClasses() tracing support for obsolete method entry
-  if (log_is_enabled(Trace, redefine, class, obsolete)) {
+  if(RC_TRACE_IN_RANGE(0x00001000, 0x00002000)) {
     // protect the args we've loaded
     save_args(masm, total_c_args, c_arg, out_regs);
     __ mov_metadata(c_rarg1, method());
@@ -1801,13 +1800,13 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   }
 
   // check for safepoint operation in progress and/or pending suspend requests
-  Label safepoint_in_progress, safepoint_in_progress_done;
+ /* Label safepoint_in_progress, safepoint_in_progress_done;
   {
     __ safepoint_poll_acquire(safepoint_in_progress);
     __ lwu(t0, Address(xthread, JavaThread::suspend_flags_offset()));
     __ bnez(t0, safepoint_in_progress);
     __ bind(safepoint_in_progress_done);
-  }
+  }*/
 
   // change thread state
   Label after_transition;
@@ -1883,7 +1882,32 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   // Unbox oop result, e.g. JNIHandles::resolve result.
   if (ret_type == T_OBJECT || ret_type == T_ARRAY) {
-    __ resolve_jobject(x10, xthread, t1);
+    //__ resolve_jobject(x10, xthread, t1);
+  Label done, not_weak;
+    __ beqz(x10, done);           // Use NULL as-is.
+    STATIC_ASSERT(JNIHandles::weak_tag_mask == 1u);
+    //__ tbz(x10, 0, not_weak);    // Test for jweak tag.
+    __ andi(t0, x10, 0);
+    __ beqz(t0, not_weak);
+   // Resolve jweak.
+    __ ld(x10, Address(x10, -JNIHandles::weak_tag_value));
+    __ verify_oop(x10);
+#if INCLUDE_ALL_GCS
+   if (UseG1GC) {
+      __ g1_write_barrier_pre(noreg /* obj */,
+                             x10 /* pre_val */,
+                              xthread /* thread */,
+                              t1 /* tmp */,
+                              true /* tosca_live */,
+                             true /* expand_call */);
+    }
+#endif // INCLUDE_ALL_GCS
+    __ j(done);
+    __ bind(not_weak);
+   // Resolve (untagged) jobject.
+    __ ld(x10, Address(x10, 0));
+    __ verify_oop(x10);
+    __ bind(done);
   }
 
   if (CheckJNICalls) {
@@ -1999,7 +2023,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   __ j(reguard_done);
 
   // SLOW PATH safepoint
-  {
+  /*{
     __ block_comment("safepoint {");
     __ bind(safepoint_in_progress);
 
@@ -2030,7 +2054,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
     __ j(safepoint_in_progress_done);
     __ block_comment("} safepoint");
-  }
+  }*/
 
   // SLOW PATH dtrace support
   {
@@ -2684,7 +2708,7 @@ SafepointBlob* SharedRuntime::generate_handler_blob(address call_ptr, int poll_t
   __ bind(noException);
 
   Label no_adjust, bail;
-  if (SafepointMechanism::uses_thread_local_poll() && !cause_return) {
+  /*if (SafepointMechanism::uses_thread_local_poll() && !cause_return) {
     // If our stashed return pc was modified by the runtime we avoid touching it
     __ ld(t0, Address(fp, wordSize));
     __ bne(x18, t0, no_adjust);
@@ -2707,7 +2731,7 @@ SafepointBlob* SharedRuntime::generate_handler_blob(address call_ptr, int poll_t
     // Adjust return pc forward to step over the safepoint poll instruction
     __ add(x18, x18, NativeInstruction::instruction_size);
     __ sd(x18, Address(fp, wordSize));
-  }
+  }*/
 
   __ bind(no_adjust);
   // Normal exit, restore registers and exit.

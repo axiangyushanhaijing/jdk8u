@@ -26,7 +26,7 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
-#include "interpreter/interp_masm.hpp"
+//#include "interpreter/interp_masm.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/interpreterRuntime.hpp"
 #include "memory/allocation.inline.hpp"
@@ -35,7 +35,7 @@
 #include "oops/oop.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/icache.hpp"
-#include "runtime/interfaceSupport.inline.hpp"
+//#include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/signature.hpp"
 
 #define __ _masm->

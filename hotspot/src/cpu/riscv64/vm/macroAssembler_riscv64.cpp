@@ -28,23 +28,22 @@
 #include "asm/assembler.hpp"
 #include "asm/assembler.inline.hpp"
 #include "compiler/disassembler.hpp"
-#include "gc/shared/barrierSet.hpp"
-#include "gc/shared/barrierSetAssembler.hpp"
-#include "gc/shared/cardTable.hpp"
-#include "gc/shared/cardTableBarrierSet.hpp"
+#include "barrierSetAssembler_riscv64.hpp"
+#include "cardTable_riscv64.hpp"
+#include "cardTableBarrierSet_riscv64.hpp"
 #include "interpreter/interpreter.hpp"
 #include "memory/resourceArea.hpp"
 #include "nativeInst_riscv64.hpp"
-#include "oops/accessDecorators.hpp"
-#include "oops/compressedOops.inline.hpp"
+#include "accessDecorators_riscv64.hpp"
 #include "oops/klass.inline.hpp"
 #include "oops/oop.hpp"
 #include "runtime/biasedLocking.hpp"
-#include "runtime/interfaceSupport.inline.hpp"
-#include "runtime/jniHandles.inline.hpp"
+//#include "runtime/interfaceSupport.inline.hpp"
+//#include "runtime/jniHandles.inline.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/thread.hpp"
 #include "utilities/macros.hpp"
+#include "safepointMechanism_riscv64.hpp"
 #ifdef COMPILER2
 #include "opto/compile.hpp"
 #include "opto/intrinsicnode.hpp"
@@ -499,7 +498,7 @@ void MacroAssembler::debug64(char* msg, int64_t pc, int64_t regs[])
   } else {
     ttyLocker ttyl;
     ::tty->print_cr("=============== DEBUG MESSAGE: %s ================\n", msg);
-    assert(false, "DEBUG MESSAGE: %s", msg);
+    vmassert(false, "DEBUG MESSAGE: %s", msg);
   }
 }
 
@@ -1325,7 +1324,7 @@ int MacroAssembler::patch_oop(address insn_addr, address o) {
   // instruction.
   if (NativeInstruction::is_li32_at(insn_addr)) {
     // Move narrow OOP
-    narrowOop n = CompressedOops::encode((oop)o);
+    narrowOop n = oopDesc::encode_heap_oop((oop)o);
     return patch_imm_in_li32(insn_addr, (int32_t)n);
   } else if (NativeInstruction::is_movptr_at(insn_addr)) {
     // Move wide OOP
@@ -1676,7 +1675,7 @@ void MacroAssembler::bang_stack_size(Register size, Register tmp) {
   // was post-decremented.)  Skip this address by starting at i=1, and
   // touch a few more pages below.  N.B.  It is important to touch all
   // the way down to and including i=StackShadowPages.
-  for (int i = 0; i < (int)(JavaThread::stack_shadow_zone_size() / os::vm_page_size()) - 1; i++) {
+  for (int i = 0; i < StackShadowPages-1; i++) {
     // this could be any sized move but this is can be a debugging crumb
     // so the bigger the better.
     sub(tmp, tmp, os::vm_page_size());
@@ -1716,15 +1715,45 @@ void MacroAssembler::resolve_oop_handle(Register result, Register tmp) {
 void MacroAssembler::access_load_at(BasicType type, DecoratorSet decorators,
                                     Register dst, Address src,
                                     Register tmp1, Register thread_tmp) {
-  BarrierSetAssembler *bs = BarrierSet::barrier_set()->barrier_set_assembler();
   decorators = AccessInternal::decorator_fixup(decorators);
+
   bool as_raw = (decorators & AS_RAW) != 0;
-  if (as_raw) {
-    bs->BarrierSetAssembler::load_at(this, decorators, type, dst, src, tmp1, thread_tmp);
-  } else {
-    bs->load_at(this, decorators, type, dst, src, tmp1, thread_tmp);
+  bool in_heap = (decorators & IN_HEAP) != 0;
+  bool in_native = (decorators & IN_NATIVE) != 0;
+  bool is_not_null = (decorators & IS_NOT_NULL) != 0;
+  switch (type) {
+  case T_OBJECT:
+  case T_ARRAY: {
+    if (in_heap) {
+      if (UseCompressedOops) {
+         lwu(dst, src);
+        if (is_not_null) {
+           decode_heap_oop_not_null(dst);
+        } else {
+           decode_heap_oop(dst);
+        }
+      } else {
+         ld(dst, src);
+      }
+    } else {
+      assert(in_native, "why else?");
+       ld(dst, src);
+    }
+    break;
   }
-}
+  case T_BOOLEAN:  load_unsigned_byte (dst, src); break;
+  case T_BYTE:     load_signed_byte   (dst, src); break;
+  case T_CHAR:     load_unsigned_short(dst, src); break;
+  case T_SHORT:    load_signed_short  (dst, src); break;
+  case T_INT:      lw                 (dst, src); break;
+  case T_LONG:     ld                 (dst, src); break;
+  case T_ADDRESS:  ld                 (dst, src); break;
+  case T_FLOAT:    flw                (f10, src); break;
+  case T_DOUBLE:   fld                (f10, src); break;
+  default: Unimplemented();
+
+  }
+ }
 
 void MacroAssembler::null_check(Register reg, int offset) {
   if (needs_explicit_null_check(offset)) {
@@ -1739,16 +1768,46 @@ void MacroAssembler::null_check(Register reg, int offset) {
 }
 
 void MacroAssembler::access_store_at(BasicType type, DecoratorSet decorators,
-                                     Address dst, Register src,
-                                     Register tmp1, Register thread_tmp) {
-  BarrierSetAssembler *bs = BarrierSet::barrier_set()->barrier_set_assembler();
+                                     Address dst, Register val,
+                                     Register temp1, Register thread_tmp) {
   decorators = AccessInternal::decorator_fixup(decorators);
-  bool as_raw = (decorators & AS_RAW) != 0;
-  if (as_raw) {
-    bs->BarrierSetAssembler::store_at(this, decorators, type, dst, src, tmp1, thread_tmp);
-  } else {
-    bs->store_at(this, decorators, type, dst, src, tmp1, thread_tmp);
+  bool in_heap = (decorators & IN_HEAP) != 0;
+  bool in_native = (decorators & IN_NATIVE) != 0;
+  switch (type) {
+  case T_OBJECT:
+  case T_ARRAY: {
+    val = val == noreg ? zr : val;
+    if (in_heap) {
+      if (UseCompressedOops) {
+        assert(!dst.uses(val), "not enough registers");
+        if (val != zr) {
+           encode_heap_oop(val);
+        }
+         sw(val, dst);
+      } else {
+         sd(val, dst);
+      }
+    } else {
+      assert(in_native, "why else?");
+       sd(val, dst);
+    }
+    break;
   }
+  case T_BOOLEAN:
+     andi(val, val, 0x1);  // boolean is true if LSB is 1
+     sb(val, dst);
+    break;
+  case T_BYTE:     sb(val, dst); break;
+  case T_CHAR:     sh(val, dst); break;
+  case T_SHORT:    sh(val, dst); break;
+  case T_INT:      sw(val, dst); break;
+  case T_LONG:     sd(val, dst); break;
+  case T_ADDRESS:  sd(val, dst); break;
+  case T_FLOAT:    fsw(f10,  dst); break;
+  case T_DOUBLE:   fsd(f10,  dst); break;
+  default: Unimplemented();
+  }
+
 }
 
 // Algorithm must match CompressedOops::encode.
@@ -1934,6 +1993,242 @@ void MacroAssembler::load_heap_oop_not_null(Register dst, Address src, Register 
 void MacroAssembler::store_heap_oop_null(Address dst) {
   access_store_at(T_OBJECT, IN_HEAP, dst, noreg, noreg, noreg);
 }
+//Add load/store_rv for riscv by refering aarch64
+void MacroAssembler::load_heap_oop_rv(Register dst, Address src)
+{
+  if (UseCompressedOops) {
+    lwu(dst, src);
+    decode_heap_oop(dst);
+  } else {
+    ld(dst, src);
+  }
+}
+void MacroAssembler::store_heap_oop_rv(Address dst, Register src) {
+  if (UseCompressedOops) {
+    assert(!dst.uses(src), "not enough registers");
+    encode_heap_oop(src);
+    sw(src, dst);
+  } else
+    sd(src, dst);
+}
+void MacroAssembler::store_heap_oop_null_rv(Address dst) {
+  if (UseCompressedOops) {
+    sw(zr, dst);
+  } else
+    sd(zr, dst);
+}
+void MacroAssembler::store_check(Register obj) {
+  // Does a store check for the oop in register obj. The content of
+  // register obj is destroyed afterwards.
+  store_check_part_1(obj);
+  store_check_part_2(obj);
+}
+
+void MacroAssembler::store_check(Register obj, Address dst) {
+  store_check(obj);
+}
+void MacroAssembler::store_check_part_1(Register obj) {
+  BarrierSet* bs = Universe::heap()->barrier_set();
+  assert(bs->kind() == BarrierSet::CardTableModRef, "Wrong barrier set kind");
+  srli(obj, obj, CardTableModRefBS::card_shift);
+}
+
+void MacroAssembler::store_check_part_2(Register obj) {
+  BarrierSet* bs = Universe::heap()->barrier_set();
+ assert(bs->kind() == BarrierSet::CardTableModRef, "Wrong barrier set kind");
+  CardTableModRefBS* ct = (CardTableModRefBS*)bs;
+  assert(sizeof(*ct->byte_map_base) == sizeof(jbyte), "adjust this code");
+
+  // The calculation for byte_map_base is as follows:
+  // byte_map_base = _byte_map - (uintptr_t(low_bound) >> card_shift);
+  // So this essentially converts an address to a displacement and
+  // it will never need to be relocated.
+
+  // FIXME: It's not likely that disp will fit into an offset so we
+  // don't bother to check, but it could save an instruction.
+  intptr_t disp = (intptr_t) ct->byte_map_base;
+  load_byte_map_base(t0);
+ 
+  if (UseConcMarkSweepGC && CMSPrecleaningEnabled) {
+      membar(StoreStore);
+  }
+  add(t0, obj, t0);
+  sb(zr, Address(t0, 0));
+}
+
+void MacroAssembler::g1_write_barrier_pre(Register obj,
+                                          Register pre_val,
+                                          Register thread,
+                                          Register tmp,
+                                          bool tosca_live,
+                                          bool expand_call) {
+  // If expand_call is true then we expand the call_VM_leaf macro
+  // directly to skip generating the check by
+  // InterpreterMacroAssembler::call_VM_leaf_base that checks _last_sp.
+
+#ifdef _LP64
+  assert(thread == xthread, "must be");
+#endif // _LP64
+
+  Label done;
+  Label runtime;
+
+  assert_different_registers(obj, pre_val, tmp, x11);
+  assert(pre_val != noreg &&  tmp != noreg, "expecting a register");
+
+  Address in_progress(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
+                                       PtrQueue::byte_offset_of_active()));
+  Address index(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
+                                       PtrQueue::byte_offset_of_index()));
+  Address buffer(thread, in_bytes(JavaThread::satb_mark_queue_offset() +
+                                       PtrQueue::byte_offset_of_buf()));
+
+
+  // Is marking active?
+  if (in_bytes(PtrQueue::byte_width_of_active()) == 4) {
+     lwu(tmp, in_progress);
+  } else {
+    assert(in_bytes(PtrQueue::byte_width_of_active()) == 1, "Assumption");
+     lbu(tmp, in_progress);
+  }
+   beqz(tmp, done);
+
+  // Do we need to load the previous value?
+  if (obj != noreg) {
+    load_heap_oop_rv(pre_val, Address(obj, 0));
+  }
+
+  // Is the previous value null?
+   beqz(pre_val, done);
+
+  // Can we store original value in the thread's buffer?
+  // Is index == 0?
+  // (The index field is typed as size_t.)
+
+   ld(tmp, index);                      // tmp := *index_adr
+   beqz(tmp, runtime);                    // tmp == 0?
+// If yes, goto runtime
+
+   sub(tmp, tmp, wordSize);              // tmp := tmp - wordSize
+   sd(tmp, index);                      // *index_adr := tmp
+   ld(t0, buffer);
+   add(tmp, tmp, t0);             // tmp := tmp + *buffer_adr
+
+  // Record the previous value
+   sd(pre_val, Address(tmp, 0));
+   j(done);
+
+   bind(runtime);
+  // save the live input values
+   push_reg(x10->bit(tosca_live) | obj->bit(obj != noreg) | pre_val->bit(true), sp);
+
+  // Calling the runtime using the regular call_VM_leaf mechanism generates
+  // code (generated by InterpreterMacroAssember::call_VM_leaf_base)
+  // that checks that the *(rfp+frame::interpreter_frame_last_sp) == NULL.
+  //
+  // If we care generating the pre-barrier without a frame (e.g. in the
+  // intrinsified Reference.get() routine) then ebp might be pointing to
+  // the caller frame and so this check will most likely fail at runtime.
+  //
+  // Expanding the call directly bypasses the generation of the check.
+  // So when we do not have have a full interpreter frame on the stack
+  // expand_call should be passed true.
+
+  if (expand_call) {
+    LP64_ONLY( assert(pre_val != c_rarg1, "smashed arg"); )
+     pass_arg1(this, thread);
+     pass_arg0(this, pre_val);
+    MacroAssembler::call_VM_leaf_base(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), 2);
+  } else {
+    call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_pre), pre_val, thread);
+  }
+
+   pop_reg(x10->bit(tosca_live) | obj->bit(obj != noreg) | pre_val->bit(true), sp);
+
+   bind(done);
+}
+void MacroAssembler::g1_write_barrier_post(Register store_addr,
+                                           Register new_val,
+                                           Register thread,
+                                           Register tmp,
+                                           Register tmp2) {
+#ifdef _LP64
+  assert(thread == xthread, "must be");
+#endif // _LP64
+  assert_different_registers(store_addr, new_val, thread, tmp, tmp2,
+                             x11);
+  assert(store_addr != noreg && new_val != noreg && tmp != noreg
+         && tmp2 != noreg, "expecting a register");
+
+  Address queue_index(thread, in_bytes(JavaThread::dirty_card_queue_offset() +
+                                       PtrQueue::byte_offset_of_index()));
+  Address buffer(thread, in_bytes(JavaThread::dirty_card_queue_offset() +
+                                       PtrQueue::byte_offset_of_buf()));
+
+  BarrierSet* bs = Universe::heap()->barrier_set();
+  CardTableModRefBS* ct = (CardTableModRefBS*)bs;
+  assert(sizeof(*ct->byte_map_base) == sizeof(jbyte), "adjust this code");
+
+  Label done;
+  Label runtime;
+
+  // Does store cross heap regions?
+
+   xorr(tmp, store_addr, new_val);
+   srli(tmp, tmp, HeapRegion::LogOfHRGrainBytes);
+   beqz(tmp, done);
+
+  // crosses regions, storing NULL?
+
+   beqz(new_val, done);
+
+  // storing region crossing non-NULL, is card already dirty?
+
+  ExternalAddress cardtable((address) ct->byte_map_base);
+  assert(sizeof(*ct->byte_map_base) == sizeof(jbyte), "adjust this code");
+  const Register card_addr = tmp;
+
+   srli(card_addr, store_addr, CardTableModRefBS::card_shift);
+
+  // get the address of the card
+   load_byte_map_base(tmp2);
+   add(card_addr, card_addr, tmp2);
+   lb(tmp2, Address(card_addr));
+   mv(t0, (int)G1SATBCardTableModRefBS::g1_young_card_val());
+   beq(tmp2, t0, done);
+   //jr(Assembler::EQ, done);
+
+  assert((int)CardTableModRefBS::dirty_card_val() == 0, "must be 0");
+
+   //fence(MacroAssembler::MacroAssembler::StoreLoad);
+   membar(Assembler::Assembler::StoreLoad);
+
+   lbu(tmp2, Address(card_addr));
+   beqz(tmp2, done);
+
+  // storing a region crossing, non-NULL oop, card is clean.
+  // dirty card and log.
+
+   sb(zr, Address(card_addr));
+
+   ld(t0, queue_index);
+   beqz(t0, runtime);
+   sub(t0, t0, wordSize);
+   sd(t0, queue_index);
+
+   ld(tmp2, buffer);
+   add(t0, tmp2, t0);
+   sd(card_addr, Address(tmp2, 0));
+   j(done);
+
+   bind(runtime);
+  // save the live input values
+   push_reg(store_addr->bit(true) | new_val->bit(true), sp);
+   call_VM_leaf(CAST_FROM_FN_PTR(address, SharedRuntime::g1_wb_post), card_addr, thread);
+   pop_reg(store_addr->bit(true) | new_val->bit(true), sp);
+
+   bind(done);
+}
 
 int MacroAssembler::corrected_idivl(Register result, Register ra, Register rb,
                                     bool want_remainder)
@@ -2002,13 +2297,14 @@ void MacroAssembler::lookup_interface_method(Register recv_klass,
          "caller must be same register for non-constant itable index as for method");
 
   // Compute start of first itableOffsetEntry (which is at the end of the vtable).
-  int vtable_base = in_bytes(Klass::vtable_start_offset());
+  int vtable_base = InstanceKlass::vtable_start_offset() * wordSize;
   int itentry_off = itableMethodEntry::method_offset_in_bytes();
   int scan_step   = itableOffsetEntry::size() * wordSize;
-  int vte_size    = vtableEntry::size_in_bytes();
+ // int vte_size    = vtableEntry::size_in_bytes();
+  int vte_size   = vtableEntry::size() * wordSize;
   assert(vte_size == wordSize, "else adjust times_vte_scale");
 
-  lwu(scan_temp, Address(recv_klass, Klass::vtable_length_offset()));
+  lwu(scan_temp, Address(recv_klass, InstanceKlass::vtable_length_offset() * wordSize));
 
   // %%% Could store the aligned, prescaled offset in the klassoop.
   slli(scan_temp, scan_temp, 3);
@@ -2056,7 +2352,7 @@ void MacroAssembler::lookup_interface_method(Register recv_klass,
 void MacroAssembler::lookup_virtual_method(Register recv_klass,
                                            RegisterOrConstant vtable_index,
                                            Register method_result) {
-  const int base = in_bytes(Klass::vtable_start_offset());
+  const int base = InstanceKlass::vtable_start_offset() * wordSize;
   assert(vtableEntry::size() * wordSize == 8,
          "adjust the scaling in the code below");
   int vtable_offset_in_bytes = base + vtableEntry::method_offset_in_bytes();
@@ -2077,7 +2373,7 @@ void MacroAssembler::membar(uint32_t order_constraint) {
   address prev = pc() - NativeMembar::instruction_size;
   address last = code()->last_insn();
 
-  if (last != NULL && nativeInstruction_at(last)->is_membar() && prev == last) {
+  if (last != NULL  && prev == last && nativeInstruction_at(last)->is_membar()) {
     NativeMembar *bar = NativeMembar_at(prev);
     // We are merging two memory barrier instructions.  On RISCV we
     // can do this simply by ORing them together.
@@ -2135,17 +2431,17 @@ void MacroAssembler::serialize_memory(Register thread, Register tmp1, Register t
 }
 
 void MacroAssembler::safepoint_poll(Label& slow_path) {
-  if (SafepointMechanism::uses_thread_local_poll()) {
-    ld(t1, Address(xthread, Thread::polling_page_offset()));
-    andi(t0, t1, SafepointMechanism::poll_bit());
-    bnez(t0, slow_path);
-  } else {
+ // if (SafepointMechanism::uses_thread_local_poll()) {
+  //  ld(t1, Address(xthread, Thread::polling_page_offset()));
+  //  andi(t0, t1, SafepointMechanism::poll_bit());
+  //  bnez(t0, slow_path);
+  //} else {
     int32_t offset = 0;
     la_patchable(t0, ExternalAddress(SafepointSynchronize::address_of_state()), offset);
     lwu(t0, Address(t0, offset));
     assert(SafepointSynchronize::_not_synchronized == 0, "rewrite this code");
     bnez(t0, slow_path);
-  }
+ // }
 }
 
 // Just like safepoint_poll, but use an acquiring load for thread-
@@ -2160,7 +2456,7 @@ void MacroAssembler::safepoint_poll(Label& slow_path) {
 // This is to avoid a race when we're in a native->Java transition
 // racing the code which wakes up from a safepoint.
 //
-void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
+/*void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
   if (SafepointMechanism::uses_thread_local_poll()) {
     membar(MacroAssembler::AnyAny);
     ld(t1, Address(xthread, Thread::polling_page_offset()));
@@ -2170,7 +2466,7 @@ void MacroAssembler::safepoint_poll_acquire(Label& slow_path) {
   } else {
     safepoint_poll(slow_path);
   }
-}
+}*/
 
 void MacroAssembler::cmpxchgptr(Register oldv, Register newv, Register addr, Register tmp,
                                 Label &succeed, Label *fail) {
@@ -2904,9 +3200,28 @@ void MacroAssembler::tlab_allocate(Register obj,
                                    Register tmp2,
                                    Label& slow_case,
                                    bool is_far) {
-  BarrierSetAssembler *bs = BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->tlab_allocate(this, obj, var_size_in_bytes, con_size_in_bytes, tmp1, tmp2, slow_case, is_far);
-}
+  assert_cond(masm != NULL);
+  assert_different_registers(obj, tmp2);
+  assert_different_registers(obj, var_size_in_bytes);
+  Register end = tmp2;
+
+   ld(obj, Address(xthread, JavaThread::tlab_top_offset()));
+  if (var_size_in_bytes == noreg) {
+     la(end, Address(obj, con_size_in_bytes));
+  } else {
+     add(end, obj, var_size_in_bytes);
+  }
+   ld(t0, Address(xthread, JavaThread::tlab_end_offset()));
+   bgtu(end, t0, slow_case, is_far);
+
+  // update the tlab top pointer
+   sd(end, Address(xthread, JavaThread::tlab_top_offset()));
+
+  // recover var_size_in_bytes if necessary
+  if (var_size_in_bytes == end) {
+    sub(var_size_in_bytes, var_size_in_bytes, obj);
+  }
+ }
 
 // Defines obj, preserves var_size_in_bytes
 void MacroAssembler::eden_allocate(Register obj,
@@ -2915,11 +3230,61 @@ void MacroAssembler::eden_allocate(Register obj,
                                    Register tmp1,
                                    Label& slow_case,
                                    bool is_far) {
-  BarrierSetAssembler *bs = BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->eden_allocate(this, obj, var_size_in_bytes, con_size_in_bytes, tmp1, slow_case, is_far);
-}
+  assert_cond(masm != NULL);
+  assert_different_registers(obj, var_size_in_bytes, tmp1);
+  if (!Universe::heap()->supports_inline_contig_alloc()) {
+     j(slow_case);
+  } else {
+    Register end = tmp1;
+    Label retry;
+    int32_t offset = 0;
+     bind(retry);
 
+    // Get the current top of the heap
+    ExternalAddress address_top((address) Universe::heap()->top_addr());
+     la_patchable(t2, address_top, offset);
+     addi(t2, t2, offset);
+     lr_d(obj, t2, Assembler::aqrl);
 
+    // Adjust it my the size of our new object
+    if (var_size_in_bytes == noreg) {
+       la(end, Address(obj, con_size_in_bytes));
+    } else {
+       add(end, obj, var_size_in_bytes);
+    }
+
+    // if end < obj then we wrapped around high memory
+     bltu(end, obj, slow_case, is_far);
+
+    Register heap_end = t1;
+    // Get the current end of the heap
+    ExternalAddress address_end((address) Universe::heap()->end_addr());
+    offset = 0;
+     la_patchable(heap_end, address_end, offset);
+     ld(heap_end, Address(heap_end, offset));
+
+     bgtu(end, heap_end, slow_case, is_far);
+    // If heap_top hasn't been changed by some other thread, update it.
+     sc_d(t1, end, t2, Assembler::rl);
+    bnez(t1, retry);
+   incr_allocated_bytes( var_size_in_bytes, con_size_in_bytes, tmp1);
+  }
+ }
+
+void MacroAssembler::incr_allocated_bytes(Register var_size_in_bytes,
+                                               int con_size_in_bytes,
+                                               Register tmp1) {
+  assert_cond(masm != NULL);
+ assert(tmp1->is_valid(), "need temp reg");
+ 
+   ld(tmp1, Address(xthread, in_bytes(JavaThread::allocated_bytes_offset())));
+  if (var_size_in_bytes->is_valid()) {
+    add(tmp1, tmp1, var_size_in_bytes);
+  } else {
+     add(tmp1, tmp1, con_size_in_bytes);
+  }
+   sd(tmp1, Address(xthread, in_bytes(JavaThread::allocated_bytes_offset())));
+ }
 // get_thread() can be called anywhere inside generated code so we
 // need to save whatever non-callee save context might get clobbered
 // by the call to Thread::current() or, indeed, the call setup code.
@@ -2943,7 +3308,8 @@ void MacroAssembler::get_thread(Register thread) {
 
 void MacroAssembler::load_byte_map_base(Register reg) {
   int32_t offset = 0;
-  jbyte *byte_map_base = ((CardTableBarrierSet*)(BarrierSet::barrier_set()))->card_table()->byte_map_base();
+  //jbyte *byte_map_base = ((CardTableBarrierSet*)(BarrierSetRv::barrier_set()))->card_table()->byte_map_base();
+  jbyte *byte_map_base = ((CardTableModRefBS*)(Universe::heap()->barrier_set()))->byte_map_base;
   la_patchable(reg, ExternalAddress((address)byte_map_base), offset);
   addi(reg, reg, offset);
 }
@@ -2989,7 +3355,7 @@ void MacroAssembler::remove_frame(int framesize) {
   add(sp, sp, framesize);
 }
 
-void MacroAssembler::reserved_stack_check() {
+/*void MacroAssembler::reserved_stack_check() {
     // testing if reserved zone needs to be enabled
     Label no_reserved_zone_enabling;
 
@@ -3012,17 +3378,17 @@ void MacroAssembler::reserved_stack_check() {
     should_not_reach_here();
 
     bind(no_reserved_zone_enabling);
-}
+}*/
 
 // Move the address of the polling page into dest.
 void MacroAssembler::get_polling_page(Register dest, address page, int32_t &offset, relocInfo::relocType rtype) {
-  if (SafepointMechanism::uses_thread_local_poll()) {
-    ld(dest, Address(xthread, Thread::polling_page_offset()));
-  } else {
+//  if (SafepointMechanism::uses_thread_local_poll()) {
+  //  ld(dest, Address(xthread, Thread::polling_page_offset()));
+//  } else {
     unsigned long align = (uintptr_t)page & 0xfff;
     assert(align == 0, "polling page must be page aligned");
     la_patchable(dest, Address(page, rtype), offset);
-  }
+//  }
 }
 
 // Move the address of the polling page into dest.
@@ -3113,7 +3479,7 @@ address MacroAssembler::trampoline_call(Address entry, CodeBuffer *cbuf) {
 }
 
 address MacroAssembler::ic_call(address entry, jint method_index) {
-  RelocationHolder rh = virtual_call_Relocation::spec(pc(), method_index);
+  RelocationHolder rh = virtual_call_Relocation::spec(pc());
   movptr(t1, (address)Universe::non_oop_word());
   assert_cond(entry != NULL);
   return trampoline_call(Address(entry, rh));
@@ -3213,13 +3579,15 @@ void MacroAssembler::cmpptr(Register src1, Address src2, Label& equal) {
 }
 
 void MacroAssembler::oop_equal(Register obj1, Register obj2, Label& equal, bool is_far) {
-  BarrierSetAssembler* bs = BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->obj_equals(this, obj1, obj2, equal, is_far);
+  //BarrierSetAssembler* bs = BarrierSetRv::barrier_set()->barrier_set_assembler();
+  //bs->obj_equals(this, obj1, obj2, equal, is_far);
+   beq(obj1, obj2, equal, is_far);
 }
 
 void MacroAssembler::oop_nequal(Register obj1, Register obj2, Label& nequal, bool is_far) {
-  BarrierSetAssembler* bs = BarrierSet::barrier_set()->barrier_set_assembler();
-  bs->obj_nequals(this, obj1, obj2, nequal, is_far);
+  //BarrierSetAssembler* bs = BarrierSetRv::barrier_set()->barrier_set_assembler();
+  //bs->obj_nequals(this, obj1, obj2, nequal, is_far);
+   bne(obj1, obj2, nequal, is_far);
 }
 
 #ifdef COMPILER2

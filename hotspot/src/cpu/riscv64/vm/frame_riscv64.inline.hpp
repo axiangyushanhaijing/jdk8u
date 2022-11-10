@@ -28,7 +28,7 @@
 #define CPU_RISCV64_VM_FRAME_RISCV64_INLINE_HPP
 
 #include "code/codeCache.hpp"
-#include "code/vmreg.inline.hpp"
+//#include "code/vmreg.inline.hpp"
 
 // Inline functions for RISCV64 frames:
 
@@ -44,7 +44,7 @@ inline frame::frame() {
 }
 
 static int spin;
-
+//oop* interpreter_frame_mirror_addr() const;
 inline void frame::init(intptr_t* ptr_sp, intptr_t* ptr_fp, address pc) {
   intptr_t a = intptr_t(ptr_sp);
   intptr_t b = intptr_t(ptr_fp);
@@ -83,7 +83,7 @@ inline frame::frame(intptr_t* ptr_sp, intptr_t* unextended_sp, intptr_t* ptr_fp,
   address original_pc = nmethod::get_deopt_original_pc(this);
   if (original_pc != NULL) {
     _pc = original_pc;
-    assert(_cb->as_compiled_method()->insts_contains_inclusive(_pc),
+    assert(((nmethod*)_cb)->insts_contains(_pc),
            "original PC must be in the main code section of the the compiled method (or must be immediately following it)");
     _deopt_state = is_deoptimized;
   } else {
@@ -173,8 +173,8 @@ inline intptr_t* frame::interpreter_frame_bcx_addr() const {
   return (intptr_t*)addr_at(interpreter_frame_bcx_offset);
 }
 
-inline intptr_t* frame::interpreter_frame_mdp_addr() const {
-  return (intptr_t*)addr_at(interpreter_frame_mdp_offset);
+inline intptr_t* frame::interpreter_frame_mdx_addr() const {
+  return (intptr_t*)addr_at(interpreter_frame_mdx_offset);
 }
 
 

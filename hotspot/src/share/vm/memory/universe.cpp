@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -121,6 +121,7 @@ oop Universe::_out_of_memory_error_class_metaspace    = NULL;
 oop Universe::_out_of_memory_error_array_size         = NULL;
 oop Universe::_out_of_memory_error_gc_overhead_limit  = NULL;
 oop Universe::_out_of_memory_error_realloc_objects    = NULL;
+oop Universe::_delayed_stack_overflow_error_message   = NULL;
 objArrayOop Universe::_preallocated_out_of_memory_error_array = NULL;
 volatile jint Universe::_preallocated_out_of_memory_error_avail_count = 0;
 bool Universe::_verify_in_progress                    = false;
@@ -130,6 +131,7 @@ oop Universe::_arithmetic_exception_instance          = NULL;
 oop Universe::_virtual_machine_error_instance         = NULL;
 oop Universe::_vm_exception                           = NULL;
 oop Universe::_allocation_context_notification_obj    = NULL;
+oop Universe::_the_null_sentinel                      = NULL;
 
 Array<int>* Universe::_the_empty_int_array            = NULL;
 Array<u2>* Universe::_the_empty_short_array           = NULL;
@@ -506,31 +508,6 @@ void Universe::fixup_mirrors(TRAPS) {
   delete java_lang_Class::fixup_mirror_list();
   java_lang_Class::set_fixup_mirror_list(NULL);
 }
-
-static bool has_run_finalizers_on_exit = false;
-
-void Universe::run_finalizers_on_exit() {
-  if (has_run_finalizers_on_exit) return;
-  has_run_finalizers_on_exit = true;
-
-  // Called on VM exit. This ought to be run in a separate thread.
-  if (TraceReferenceGC) tty->print_cr("Callback to run finalizers on exit");
-  {
-    PRESERVE_EXCEPTION_MARK;
-    KlassHandle finalizer_klass(THREAD, SystemDictionary::Finalizer_klass());
-    JavaValue result(T_VOID);
-    JavaCalls::call_static(
-      &result,
-      finalizer_klass,
-      vmSymbols::run_finalizers_on_exit_name(),
-      vmSymbols::void_method_signature(),
-      THREAD
-    );
-    // Ignore any pending exceptions
-    CLEAR_PENDING_EXCEPTION;
-  }
-}
-
 
 // initialize_vtable could cause gc if
 // 1) we specified true to initialize_vtable and

@@ -83,6 +83,21 @@ class InterpreterMacroAssembler: public MacroAssembler {
   }
 
   void get_dispatch();
+  /*void g1_write_barrier_pre(Register obj,
+                            Register pre_val,
+                            Register thread,
+                            Register tmp,
+                            bool tosca_live,
+                            bool expand_call);
+
+  void g1_write_barrier_post(Register store_addr,
+                             Register new_val,
+                             Register thread,
+                             Register tmp,
+                             Register tmp2);
+                                // Stores
+  void store_check(Register obj);                // store check for obj - register is destroyed afterwards
+  void store_check(Register obj, Address dst);   */
 
   // Helpers for runtime call arguments/results
   void get_method(Register reg) {
@@ -120,8 +135,8 @@ class InterpreterMacroAssembler: public MacroAssembler {
   void load_resolved_reference_at_index(Register result, Register index, Register tmp = x15);
 
   // Load cpool->resolved_klass_at(index).
-  void load_resolved_klass_at_offset(Register cpool, Register index, Register klass, Register temp);
-
+  //void load_resolved_klass_at_offset(Register cpool, Register index, Register klass, Register temp);
+  void load_resolved_klass_at_offset(Register cpool, Register index, Register temp, Register temp2);
   void pop_ptr(Register r = x10);
   void pop_i(Register r = x10);
   void pop_l(Register r = x10);
