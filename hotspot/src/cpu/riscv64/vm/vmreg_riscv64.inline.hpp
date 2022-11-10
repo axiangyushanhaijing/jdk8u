@@ -32,11 +32,6 @@ inline VMReg RegisterImpl::as_VMReg() {
   return VMRegImpl::as_VMReg(encoding() << 1 );
 }
 
-inline VMReg FloatRegisterImpl::as_VMReg() {
-  return VMRegImpl::as_VMReg((encoding() << 1) + ConcreteRegisterImpl::max_gpr);
-}
-
-
 inline bool VMRegImpl::is_Register() {
   return (unsigned int) value() < (unsigned int) ConcreteRegisterImpl::max_gpr;
 }

@@ -50,6 +50,7 @@
 # include "adfiles/adGlobals_riscv64.hpp"
 #endif
 #endif
+
 //------------------------------VMReg------------------------------------------
 // The VM uses 'unwarped' stack slots; the compiler uses 'warped' stack slots.
 // Register numbers below VMRegImpl::stack0 are the same for both.  Register

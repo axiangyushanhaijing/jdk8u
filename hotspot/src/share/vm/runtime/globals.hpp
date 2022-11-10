@@ -4090,7 +4090,10 @@ class CommandLineFlags {
 #else
 #define DECLARE_LP64_PRODUCT_FLAG(type, name, value, doc) const type name = value;
 #endif // _LP64
+#define IGNORE_RANGE(a, b)
+#define IGNORE_CONSTRAINT(func,type)
 
+#define IGNORE_WRITEABLE(type)
 // Implementation macros
 #define MATERIALIZE_PRODUCT_FLAG(type, name, value, doc)      type name = value;
 #define MATERIALIZE_PD_PRODUCT_FLAG(type, name, doc)          type name = pd_##name;
@@ -4119,6 +4122,14 @@ RUNTIME_OS_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PD_DEVELOPER_FLAG, DECLARE_PROD
 
 ARCH_FLAGS(DECLARE_DEVELOPER_FLAG, DECLARE_PRODUCT_FLAG, DECLARE_DIAGNOSTIC_FLAG, DECLARE_EXPERIMENTAL_FLAG, DECLARE_NOTPRODUCT_FLAG)
 
+ARCH_FLAGS_RISCV(DECLARE_DEVELOPER_FLAG, \
+           DECLARE_PRODUCT_FLAG, \
+           DECLARE_DIAGNOSTIC_FLAG, \
+           DECLARE_EXPERIMENTAL_FLAG, \
+           DECLARE_NOTPRODUCT_FLAG, \
+           IGNORE_RANGE, \
+           IGNORE_CONSTRAINT, \
+           IGNORE_WRITEABLE)
 // Extensions
 
 #include "runtime/globals_ext.hpp"

@@ -248,6 +248,7 @@ class frame VALUE_OBJ_CLASS_SPEC {
   intptr_t** interpreter_frame_locals_addr() const;
   intptr_t*  interpreter_frame_bcx_addr() const;
   intptr_t*  interpreter_frame_mdx_addr() const;
+  intptr_t*    interpreter_frame_mdp_addr() const;
 
  public:
   // Locals
@@ -275,7 +276,7 @@ class frame VALUE_OBJ_CLASS_SPEC {
   void interpreter_frame_set_mdx(intptr_t mdx);
 
   // method data pointer
-  address interpreter_frame_mdp() const;
+  intptr_t interpreter_frame_mdp() const;
   void    interpreter_frame_set_mdp(address dp);
 
   // Find receiver out of caller's (compiled) argument list
@@ -358,6 +359,8 @@ class frame VALUE_OBJ_CLASS_SPEC {
   void interpreter_frame_set_method(Method* method);
   Method** interpreter_frame_method_addr() const;
   ConstantPoolCache** interpreter_frame_cache_addr() const;
+  oop* interpreter_frame_mirror_addr() const;
+  void interpreter_frame_set_mirror(oop mirror);
 
  public:
   // Entry frames
