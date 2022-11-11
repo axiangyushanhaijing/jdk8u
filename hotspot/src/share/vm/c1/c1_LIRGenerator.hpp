@@ -252,6 +252,8 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void do_FPIntrinsics(Intrinsic* x);
   void do_Reference_get(Intrinsic* x);
   void do_update_CRC32(Intrinsic* x);
+  void do_update_CRC32C(Intrinsic* x);
+  void do_vectorizedMismatch(Intrinsic* x);
 
   void do_UnsafePrefetch(UnsafePrefetch* x, bool is_store);
 
@@ -261,11 +263,13 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   // convenience functions
   LIR_Opr call_runtime(Value arg1, address entry, ValueType* result_type, CodeEmitInfo* info);
   LIR_Opr call_runtime(Value arg1, Value arg2, address entry, ValueType* result_type, CodeEmitInfo* info);
-
+  void negate(LIR_Opr left, LIR_Opr dest, LIR_Opr tmp = LIR_OprFact::illegalOpr);
   // GC Barriers
 
   // generic interface
-
+  LIR_Opr atomic_cmpxchg(BasicType type, LIR_Opr addr, LIRItem& cmp_value, LIRItem& new_value);
+  LIR_Opr atomic_xchg(BasicType type, LIR_Opr addr, LIRItem& new_value);
+  LIR_Opr atomic_add(BasicType type, LIR_Opr addr, LIRItem& new_value);
   void pre_barrier(LIR_Opr addr_opr, LIR_Opr pre_val, bool do_load, bool patch, CodeEmitInfo* info);
   void post_barrier(LIR_OprDesc* addr, LIR_OprDesc* new_val);
 
