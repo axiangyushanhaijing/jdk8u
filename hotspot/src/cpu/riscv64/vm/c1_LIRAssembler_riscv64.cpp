@@ -1521,6 +1521,7 @@ void LIR_Assembler::emit_lock(LIR_OpLock* op) {
 void LIR_Assembler::emit_profile_call(LIR_OpProfileCall* op) {
   ciMethod* method = op->profiled_method();
   int bci          = op->profiled_bci();
+  ciMethod* callee = op->profiled_callee();
 
   // Update counter for all call types
   ciMethodData* md = method->method_data_or_null();
