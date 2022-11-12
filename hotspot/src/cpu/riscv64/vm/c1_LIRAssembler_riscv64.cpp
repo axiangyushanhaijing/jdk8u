@@ -1155,7 +1155,7 @@ void LIR_Assembler::profile_object(ciMethodData* md, ciProfileData* data, Regist
 
 void LIR_Assembler::typecheck_loaded(LIR_OpTypeCheck *op, ciKlass* k, Register k_RInfo) {
   if (!k->is_loaded()) {
-    __ j(k_RInfo, op->info_for_patch());
+   klass2reg_with_patching(k_RInfo, op->info_for_patch());
   } else {
     __ mov_metadata(k_RInfo, k->constant_encoding());
   }

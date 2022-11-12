@@ -369,7 +369,12 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
 
   LIR_Opr safepoint_poll_register();
 
+  //void profile_branch(If* if_instr, If::Condition cond);
+#ifdef NO_FLAG_REG
+  void profile_branch(If* if_instr, If::Condition cond, LIR_Opr left, LIR_Opr right);
+#else
   void profile_branch(If* if_instr, If::Condition cond);
+#endif
   void increment_event_counter_impl(CodeEmitInfo* info,
                                     ciMethod *method, int frequency,
                                     int bci, bool backedge, bool notify);

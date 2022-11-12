@@ -381,9 +381,9 @@ void LIRGenerator::do_ArithmeticOp_Long(ArithmeticOp* x) {
     left.load_item();
     right.load_item();
 
-    //__ branch(lir_cond_equal, right.result(), LIR_OprFact::longConst(0), T_LONG, new DivByZeroStub(info));
-    __ cmp(lir_cond_equal, right.result(), LIR_OprFact::longConst(0));
-    __ branch(lir_cond_equal, T_LONG, new DivByZeroStub(info));
+    __ branch(lir_cond_equal, right.result(), LIR_OprFact::longConst(0), T_LONG, new DivByZeroStub(info));
+    //__ cmp(lir_cond_equal, right.result(), LIR_OprFact::longConst(0));
+    //__ branch(lir_cond_equal, T_LONG, new DivByZeroStub(info));
     rlock_result(x);
     switch (x->op()) {
     case Bytecodes::_lrem:
@@ -442,9 +442,9 @@ void LIRGenerator::do_ArithmeticOp_Int(ArithmeticOp* x) {
 
     CodeEmitInfo* info = state_for(x);
     LIR_Opr tmp = new_register(T_INT);
-    //__ branch(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0), T_INT, new DivByZeroStub(info));
-    __ cmp(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0));
-    __ branch(lir_cond_equal, T_INT, new DivByZeroStub(info));
+    __ branch(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0), T_INT, new DivByZeroStub(info));
+    //__ cmp(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0));
+    //__ branch(lir_cond_equal, T_INT, new DivByZeroStub(info));
     info = state_for(x);
 
     if (x->op() == Bytecodes::_irem) {
@@ -1024,11 +1024,11 @@ void LIRGenerator::do_If(If* x) {
   profile_branch(x, cond, left, right);
   move_to_phi(x->state());
   if (x->x()->type()->is_float_kind()) {
-    //__ branch(lir_cond(cond), left, right, right->type(), x->tsux(), x->usux());
-    __ branch(lir_cond(cond), right->type(), x->tsux(), x->usux());
+    __ branch(lir_cond(cond), left, right, right->type(), x->tsux(), x->usux());
+    //__ branch(lir_cond(cond), right->type(), x->tsux(), x->usux());
   } else {
-    //__ branch(lir_cond(cond), left, right, right->type(), x->tsux());
-    __ branch(lir_cond(cond), right->type(), x->tsux());
+    __ branch(lir_cond(cond), left, right, right->type(), x->tsux());
+    //__ branch(lir_cond(cond), right->type(), x->tsux());
   }
   assert(x->default_sux() == x->fsux(), "wrong destination above");
   __ jump(x->default_sux());
