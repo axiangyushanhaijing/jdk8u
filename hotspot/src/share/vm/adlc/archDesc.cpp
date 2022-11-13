@@ -1038,6 +1038,9 @@ void ArchDesc::initBaseOpTypes() {
     ident = "TEMP";
     eForm = new Effect(ident);
     _globalNames.Insert(ident, eForm);
+    ident = "TEMP_DEF";
+    eForm = new Effect(ident);
+    _globalNames.Insert(ident, eForm);
     ident = "CALL";
     eForm = new Effect(ident);
     _globalNames.Insert(ident, eForm);

@@ -918,6 +918,7 @@ public:
     KILL    = 0x4, USE_KILL  = 0x5,
     SYNTHETIC = 0x8,
     TEMP = USE | SYNTHETIC,
+    TEMP_DEF  = TEMP | DEF,
     CALL = 0x10
   };
 };
