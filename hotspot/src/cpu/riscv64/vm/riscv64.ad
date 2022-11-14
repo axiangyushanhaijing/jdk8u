@@ -4966,45 +4966,9 @@ instruct compareAndSwapN(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegNNoS
 %}
 
 // alternative CompareAndSwapX when we are eliding barriers
-instruct compareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
 
-  match(Set res (CompareAndSwapB mem (Binary oldval newval)));
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
-  ins_cost(LOAD_COST + STORE_COST + ALU_COST * 10 + BRANCH_COST * 4);
-
-  format %{
-    "cmpxchg_acq $mem, $oldval, $newval\t# (byte) if $mem == $oldval then $mem <-- $newval\n\t"
-    "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapBAcq"
-  %}
-
-  ins_encode(riscv64_enc_cmpxchgb_acq(res, mem, oldval, newval, tmp1, tmp2, tmp3));
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct compareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (CompareAndSwapS mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + ALU_COST * 11 + BRANCH_COST * 4);
-
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
-
-  format %{
-    "cmpxchg_acq $mem, $oldval, $newval\t# (short) if $mem == $oldval then $mem <-- $newval\n\t"
-    "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapSAcq"
-  %}
-
-  ins_encode(riscv64_enc_cmpxchgs_acq(res, mem, oldval, newval, tmp1, tmp2, tmp3));
-
-  ins_pipe(pipe_slow);
-%}
 
 instruct compareAndSwapIAcq(iRegINoSp res, indirect mem, iRegINoSp oldval, iRegINoSp newval)
 %{
@@ -5086,281 +5050,31 @@ instruct compareAndSwapNAcq(iRegINoSp res, indirect mem, iRegNNoSp oldval, iRegN
 // sc_d(w) with rl bit set.
 
 
-instruct compareAndExchangeBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
 
-  match(Set res (CompareAndExchangeB mem (Binary oldval newval)));
 
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 5);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeBAcq"
-  %}
 
-  ins_encode %{
-    __ cmpxchg_narrow_value(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int8,
-                            /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
-                            /*result_as_bool*/ false, $tmp1$$Register, $tmp2$$Register, $tmp3$$Register);
-  %}
 
-  ins_pipe(pipe_slow);
-%}
 
-instruct compareAndExchangeSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
 
-  match(Set res (CompareAndExchangeS mem (Binary oldval newval)));
 
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST * 6);
 
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
 
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeSAcq"
-  %}
 
-  ins_encode %{
-    __ cmpxchg_narrow_value(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int16,
-                            /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
-                            /*result_as_bool*/ false, $tmp1$$Register, $tmp2$$Register, $tmp3$$Register);
-  %}
 
-  ins_pipe(pipe_slow);
-%}
 
-instruct compareAndExchangeIAcq(iRegINoSp res, indirect mem, iRegI oldval, iRegI newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
 
-  match(Set res (CompareAndExchangeI mem (Binary oldval newval)));
 
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST);
 
-  effect(TEMP_DEF res);
 
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (int, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeIAcq"
-  %}
 
-  ins_encode %{
-    __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int32,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-  %}
 
-  ins_pipe(pipe_slow);
-%}
 
-instruct compareAndExchangeLAcq(iRegLNoSp res, indirect mem, iRegL oldval, iRegL newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
 
-  match(Set res (CompareAndExchangeL mem (Binary oldval newval)));
 
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST);
 
-  effect(TEMP_DEF res);
 
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (long, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeLAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct compareAndExchangeNAcq(iRegNNoSp res, indirect mem, iRegN oldval, iRegN newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (CompareAndExchangeN mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST);
-
-  effect(TEMP_DEF res);
-
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangeNAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::uint32,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct compareAndExchangePAcq(iRegPNoSp res, indirect mem, iRegP oldval, iRegP newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (CompareAndExchangeP mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 3 + ALU_COST);
-
-  effect(TEMP_DEF res);
-
-  format %{
-    "cmpxchg_acq $res = $mem, $oldval, $newval\t# (ptr, weak) if $mem == $oldval then $mem <-- $newval, #@compareAndExchangePAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-
-
-
-
-instruct weakCompareAndSwapBAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapB mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 6);
-
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (byte, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapBAcq"
-  %}
-
-  ins_encode %{
-    __ weak_cmpxchg_narrow_value(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int8,
-                                 /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
-                                 $tmp1$$Register, $tmp2$$Register, $tmp3$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct weakCompareAndSwapSAcq(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapS mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 7);
-
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (short, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapSAcq"
-  %}
-
-  ins_encode %{
-    __ weak_cmpxchg_narrow_value(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int16,
-                                 /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register,
-                                 $tmp1$$Register, $tmp2$$Register, $tmp3$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct weakCompareAndSwapIAcq(iRegINoSp res, indirect mem, iRegI oldval, iRegI newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapI mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 2);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (int, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapIAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg_weak(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int32,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct weakCompareAndSwapLAcq(iRegINoSp res, indirect mem, iRegL oldval, iRegL newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapL mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 2);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (long, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapLAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg_weak(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct weakCompareAndSwapNAcq(iRegINoSp res, indirect mem, iRegN oldval, iRegN newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapN mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 4);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (narrow oop, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapNAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg_weak(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::uint32,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
-
-instruct weakCompareAndSwapPAcq(iRegINoSp res, indirect mem, iRegP oldval, iRegP newval)
-%{
-  predicate(needs_acquiring_load_exclusive(n));
-
-  match(Set res (WeakCompareAndSwapP mem (Binary oldval newval)));
-
-  ins_cost(LOAD_COST + STORE_COST + BRANCH_COST * 2 + ALU_COST * 2);
-
-  format %{
-    "cmpxchg_weak_acq $mem, $oldval, $newval\t# (ptr, weak) if $mem == $oldval then $mem <-- $newval\n\t"
-    "xori $res, $res, 1\t# $res == 1 when success, #@weakCompareAndSwapPAcq"
-  %}
-
-  ins_encode %{
-    __ cmpxchg_weak(as_Register($mem$$base), $oldval$$Register, $newval$$Register, Assembler::int64,
-               /*acquire*/ Assembler::aq, /*release*/ Assembler::rl, $res$$Register);
-    __ xori($res$$Register, $res$$Register, 1);
-  %}
-
-  ins_pipe(pipe_slow);
-%}
 
 instruct get_and_setI(indirect mem, iRegI newv, iRegINoSp prev)
 %{
@@ -6455,22 +6169,7 @@ instruct mulD_reg_reg(fRegD dst, fRegD src1, fRegD src2) %{
 %}
 
 // src1 * src2 + src3
-instruct maddF_reg_reg(fRegF dst, fRegF src1, fRegF src2, fRegF src3) %{
-  predicate(UseFMA);
-  match(Set dst (FmaF src3 (Binary src1 src2)));
 
-  ins_cost(FMUL_SINGLE_COST);
-  format %{ "fmadd.s  $dst, $src1, $src2, $src3\t#@maddF_reg_reg" %}
-
-  ins_encode %{
-    __ fmadd_s(as_FloatRegister($dst$$reg),
-               as_FloatRegister($src1$$reg),
-               as_FloatRegister($src2$$reg),
-               as_FloatRegister($src3$$reg));
-  %}
-
-  ins_pipe(pipe_class_default);
-%}
 
 // src1 * src2 + src3
 instruct maddD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
@@ -6491,22 +6190,7 @@ instruct maddD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
 %}
 
 // src1 * src2 - src3
-instruct msubF_reg_reg(fRegF dst, fRegF src1, fRegF src2, fRegF src3) %{
-  predicate(UseFMA);
-  match(Set dst (FmaF (NegF src3) (Binary src1 src2)));
 
-  ins_cost(FMUL_SINGLE_COST);
-  format %{ "fmsub.s  $dst, $src1, $src2, $src3\t#@msubF_reg_reg" %}
-
-  ins_encode %{
-    __ fmsub_s(as_FloatRegister($dst$$reg),
-               as_FloatRegister($src1$$reg),
-               as_FloatRegister($src2$$reg),
-               as_FloatRegister($src3$$reg));
-  %}
-
-  ins_pipe(pipe_class_default);
-%}
 
 // src1 * src2 - src3
 instruct msubD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
@@ -6527,23 +6211,7 @@ instruct msubD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
 %}
 
 // -src1 * src2 + src3
-instruct nmsubF_reg_reg(fRegF dst, fRegF src1, fRegF src2, fRegF src3) %{
-  predicate(UseFMA);
-  match(Set dst (FmaF src3 (Binary (NegF src1) src2)));
-  match(Set dst (FmaF src3 (Binary src1 (NegF src2))));
 
-  ins_cost(FMUL_SINGLE_COST);
-  format %{ "fnmsub.s  $dst, $src1, $src2, $src3\t#@nmsubF_reg_reg" %}
-
-  ins_encode %{
-    __ fnmsub_s(as_FloatRegister($dst$$reg),
-                as_FloatRegister($src1$$reg),
-                as_FloatRegister($src2$$reg),
-                as_FloatRegister($src3$$reg));
-  %}
-
-  ins_pipe(pipe_class_default);
-%}
 
 // -src1 * src2 + src3
 instruct nmsubD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
@@ -6564,24 +6232,6 @@ instruct nmsubD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
   ins_pipe(pipe_class_default);
 %}
 
-// -src1 * src2 - src3
-instruct nmaddF_reg_reg(fRegF dst, fRegF src1, fRegF src2, fRegF src3) %{
-  predicate(UseFMA);
-  match(Set dst (FmaF (NegF src3) (Binary (NegF src1) src2)));
-  match(Set dst (FmaF (NegF src3) (Binary src1 (NegF src2))));
-
-  ins_cost(FMUL_SINGLE_COST);
-  format %{ "fnmadd.s  $dst, $src1, $src2, $src3\t#@nmaddF_reg_reg" %}
-
-  ins_encode %{
-    __ fnmadd_s(as_FloatRegister($dst$$reg),
-                as_FloatRegister($src1$$reg),
-                as_FloatRegister($src2$$reg),
-                as_FloatRegister($src3$$reg));
-  %}
-
-  ins_pipe(pipe_class_default);
-%}
 
 // -src1 * src2 - src3
 instruct nmaddD_reg_reg(fRegD dst, fRegD src1, fRegD src2, fRegD src3) %{
