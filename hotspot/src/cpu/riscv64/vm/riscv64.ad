@@ -4899,23 +4899,6 @@ instruct storeIConditional(indirect mem, iRegINoSp oldval, iRegINoSp newval, iRe
 
 // standard CompareAndSwapX when we are using barriers
 // these have higher priority than the rules selected by a predicate
-instruct compareAndSwapB(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
-%{
-  match(Set res (CompareAndSwapB mem (Binary oldval newval)));
-
-  effect(TEMP_DEF res, KILL cr, USE_KILL oldval, USE_KILL newval, TEMP tmp1, TEMP tmp2, TEMP tmp3);
-
-  ins_cost(LOAD_COST + STORE_COST + ALU_COST * 10 + BRANCH_COST * 4);
-
-  format %{
-    "cmpxchg $mem, $oldval, $newval\t# (byte) if $mem == $oldval then $mem <-- $newval\n\t"
-    "mv $res, $res == $oldval\t# $res <-- ($res == $oldval ? 1 : 0), #@compareAndSwapB"
-  %}
-
-  ins_encode(riscv64_enc_cmpxchgb(res, mem, oldval, newval, tmp1, tmp2, tmp3));
-
-  ins_pipe(pipe_slow);
-%}
 
 instruct compareAndSwapS(iRegINoSp res, indirect mem, iRegI_R12 oldval, iRegI_R13 newval, iRegI tmp1, iRegI tmp2, iRegI tmp3, iRegL_R6 cr)
 %{
