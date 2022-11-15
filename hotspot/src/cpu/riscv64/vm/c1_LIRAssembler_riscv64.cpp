@@ -858,18 +858,6 @@ void LIR_Assembler::emit_op3(LIR_Op3* op) {
     case lir_irem:
       arithmetic_idiv(op, true);
       break;
-    case lir_fmad:
-      __ fmadd_d(op->result_opr()->as_double_reg(),
-                 op->in_opr1()->as_double_reg(),
-                 op->in_opr2()->as_double_reg(),
-                 op->in_opr3()->as_double_reg());
-      break;
-    case lir_fmaf:
-      __ fmadd_s(op->result_opr()->as_float_reg(),
-                 op->in_opr1()->as_float_reg(),
-                 op->in_opr2()->as_float_reg(),
-                 op->in_opr3()->as_float_reg());
-      break;
     default:
       ShouldNotReachHere();
       break;
