@@ -301,31 +301,45 @@ void LIR_Op2::verify() const {
 #endif
 }
 
-
+#ifndef NO_FLAG_REG
 LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, BasicType type, BlockBegin* block)
   : LIR_Op(lir_branch, LIR_OprFact::illegalOpr, (CodeEmitInfo*)NULL)
   , _cond(cond)
   , _type(type)
+#else
+LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, LIR_Opr left, LIR_Opr right, BasicType type, BlockBegin* block)
+  : LIR_Op2(lir_branch, cond, left, right, (CodeEmitInfo *)(NULL))
+#endif
   , _label(block->label())
   , _block(block)
   , _ublock(NULL)
   , _stub(NULL) {
 }
 
+#ifndef NO_FLAG_REG
 LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, BasicType type, CodeStub* stub) :
   LIR_Op(lir_branch, LIR_OprFact::illegalOpr, (CodeEmitInfo*)NULL)
   , _cond(cond)
   , _type(type)
+#else
+LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, LIR_Opr left, LIR_Opr right, BasicType type, CodeStub* stub) :
+  LIR_Op2(lir_branch, cond, left, right, (CodeEmitInfo *)(NULL))
+#endif
   , _label(stub->entry())
   , _block(NULL)
   , _ublock(NULL)
   , _stub(stub) {
 }
-
+#ifndef NO_FLAG_REG
 LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, BasicType type, BlockBegin* block, BlockBegin* ublock)
   : LIR_Op(lir_cond_float_branch, LIR_OprFact::illegalOpr, (CodeEmitInfo*)NULL)
   , _cond(cond)
   , _type(type)
+#else
+LIR_OpBranch::LIR_OpBranch(LIR_Condition cond, LIR_Opr left, LIR_Opr right, BasicType type, BlockBegin *block,
+                           BlockBegin *ublock)
+  : LIR_Op2(lir_branch, cond, left, right, (CodeEmitInfo *)(NULL))
+#endif
   , _label(block->label())
   , _block(block)
   , _ublock(ublock)
@@ -1371,7 +1385,7 @@ void LIR_List::irem(LIR_Opr left, int right, LIR_Opr res, LIR_Opr tmp, CodeEmitI
                     info));
 }
 
-
+#ifndef NO_FLAG_REG
 void LIR_List::cmp_mem_int(LIR_Condition condition, LIR_Opr base, int disp, int c, CodeEmitInfo* info) {
   append(new LIR_Op2(
                     lir_cmp,
@@ -1390,7 +1404,7 @@ void LIR_List::cmp_reg_mem(LIR_Condition condition, LIR_Opr reg, LIR_Address* ad
                     LIR_OprFact::address(addr),
                     info));
 }
-
+#endif
 void LIR_List::allocate_object(LIR_Opr dst, LIR_Opr t1, LIR_Opr t2, LIR_Opr t3, LIR_Opr t4,
                                int header_size, int object_size, LIR_Opr klass, bool init_check, CodeStub* stub) {
   append(new LIR_OpAllocObj(
@@ -1525,7 +1539,9 @@ void LIR_List::null_check(LIR_Opr opr, CodeEmitInfo* info, bool deoptimize_on_nu
     // Emit an explicit null check and deoptimize if opr is null
     CodeStub* deopt = new DeoptimizeStub(info);
     cmp(lir_cond_equal, opr, LIR_OprFact::oopConst(NULL));
-    branch(lir_cond_equal, T_OBJECT, deopt);
+    //branch(lir_cond_equal, T_OBJECT, deopt);
+    branch(lir_cond_equal, NO_FLAGREG_ONLY_ARG(opr) NO_FLAGREG_ONLY_ARG(LIR_OprFact::oopConst(NULL)) T_OBJECT, deopt);
+
   } else {
     // Emit an implicit null check
     append(new LIR_Op1(lir_null_check, opr, info));

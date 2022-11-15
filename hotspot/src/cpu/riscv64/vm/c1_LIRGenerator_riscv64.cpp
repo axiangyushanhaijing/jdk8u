@@ -181,12 +181,13 @@ LIR_Address* LIRGenerator::generate_address(LIR_Opr base, LIR_Opr index,
       return new LIR_Address(base, tmp, type);
     }
   } else {
-    return new LIR_Address(base, index, (LIR_Address::Scale)shift, disp, type);
+    //return new LIR_Address(base, index, (LIR_Address::Scale)shift, disp, type);
+    return new LIR_Address(base, disp, type);
   }
 }
 
 LIR_Address* LIRGenerator::emit_array_address(LIR_Opr array_opr, LIR_Opr index_opr,
-                                              BasicType type) {
+                                              BasicType type, bool needs_card_mark) {
   int offset_in_bytes = arrayOopDesc::base_offset_in_bytes(type);
   int elem_size = type2aelembytes(type);
   int shift = exact_log2(elem_size);
@@ -381,7 +382,8 @@ void LIRGenerator::do_ArithmeticOp_Long(ArithmeticOp* x) {
     right.load_item();
 
     __ branch(lir_cond_equal, right.result(), LIR_OprFact::longConst(0), T_LONG, new DivByZeroStub(info));
-
+    //__ cmp(lir_cond_equal, right.result(), LIR_OprFact::longConst(0));
+    //__ branch(lir_cond_equal, T_LONG, new DivByZeroStub(info));
     rlock_result(x);
     switch (x->op()) {
     case Bytecodes::_lrem:
@@ -441,6 +443,8 @@ void LIRGenerator::do_ArithmeticOp_Int(ArithmeticOp* x) {
     CodeEmitInfo* info = state_for(x);
     LIR_Opr tmp = new_register(T_INT);
     __ branch(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0), T_INT, new DivByZeroStub(info));
+    //__ cmp(lir_cond_equal, right_arg->result(), LIR_OprFact::longConst(0));
+    //__ branch(lir_cond_equal, T_INT, new DivByZeroStub(info));
     info = state_for(x);
 
     if (x->op() == Bytecodes::_irem) {
@@ -862,7 +866,8 @@ void LIRGenerator::do_NewObjectArray(NewObjectArray* x) {
 void LIRGenerator::do_NewMultiArray(NewMultiArray* x) {
   Values* dims = x->dims();
   int i = dims->length();
-  LIRItemList* items = new LIRItemList(i, i, NULL);
+  //LIRItemList* items = new LIRItemList(i, i, NULL);
+  LIRItemList* items = new LIRItemList(dims->length(), NULL);
   while (i-- > 0) {
     LIRItem* size = new LIRItem(dims->at(i), this);
     items->at_put(i, size);
@@ -937,9 +942,10 @@ void LIRGenerator::do_CheckCast(CheckCast* x) {
                                    info_for_exception);
   } else if (x->is_invokespecial_receiver_check()) {
     assert(patching_info == NULL, "can't patch this");
-    stub = new DeoptimizeStub(info_for_exception,
-                              Deoptimization::Reason_class_check,
-                              Deoptimization::Action_none);
+    //stub = new DeoptimizeStub(info_for_exception,
+    //                          Deoptimization::Reason_class_check,
+    //                          Deoptimization::Action_none);
+    stub = new DeoptimizeStub(info_for_exception);
   } else {
     stub = new SimpleExceptionStub(Runtime1::throw_class_cast_exception_id, obj.result(), info_for_exception);
   }
@@ -1019,8 +1025,10 @@ void LIRGenerator::do_If(If* x) {
   move_to_phi(x->state());
   if (x->x()->type()->is_float_kind()) {
     __ branch(lir_cond(cond), left, right, right->type(), x->tsux(), x->usux());
+    //__ branch(lir_cond(cond), right->type(), x->tsux(), x->usux());
   } else {
     __ branch(lir_cond(cond), left, right, right->type(), x->tsux());
+    //__ branch(lir_cond(cond), right->type(), x->tsux());
   }
   assert(x->default_sux() == x->fsux(), "wrong destination above");
   __ jump(x->default_sux());

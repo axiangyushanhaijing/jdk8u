@@ -195,6 +195,7 @@ class LIR_Assembler: public CompilationResourceObj {
   void emit_op1(LIR_Op1* op);
   void emit_op2(LIR_Op2* op);
   void emit_op3(LIR_Op3* op);
+  NO_FLAGREG_ONLY(void emit_op4(LIR_Op4* op);)
   void emit_opBranch(LIR_OpBranch* op);
   void emit_opLabel(LIR_OpLabel* op);
   void emit_arraycopy(LIR_OpArrayCopy* op);
@@ -228,7 +229,7 @@ class LIR_Assembler: public CompilationResourceObj {
   void comp_mem_op(LIR_Opr src, LIR_Opr result, BasicType type, CodeEmitInfo* info);  // info set for null exceptions
   void comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Opr result, LIR_Op2* op);
   void cmove(LIR_Condition code, LIR_Opr left, LIR_Opr right, LIR_Opr result, BasicType type);
-
+  void emit_cmove(LIR_Op4* op);
   void call(        LIR_OpJavaCall* op, relocInfo::relocType rtype);
   void ic_call(     LIR_OpJavaCall* op);
   void vtable_call( LIR_OpJavaCall* op);
@@ -246,6 +247,7 @@ class LIR_Assembler: public CompilationResourceObj {
 
   void negate(LIR_Opr left, LIR_Opr dest);
   void leal(LIR_Opr left, LIR_Opr dest);
+  void leal(LIR_Opr addr, LIR_Opr dest, LIR_PatchCode patch_code, CodeEmitInfo* info);
 
   void rt_call(LIR_Opr result, address dest, const LIR_OprList* args, LIR_Opr tmp, CodeEmitInfo* info);
 
