@@ -1,0 +1,93 @@
+diff --git a/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp b/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
+index bf7552c9af..9fdd784f55 100644
+--- a/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
++++ b/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
+@@ -147,6 +147,23 @@ void MacroAssembler::store_check(Register obj, Address dst) {
+   store_check(obj);
+ }*/
+ 
++static void do_oop_store(InterpreterMacroAssembler* _masm,
++                         Address dst,
++                         Register val,
++                         DecoratorSet decorators) {
++  assert(val == noreg || val == x10, "parameter is just for looks");
++  assert_cond(_masm != NULL);
++  __ store_heap_oop(dst, val, x29, x11, decorators);
++}
++
++static void do_oop_load(InterpreterMacroAssembler* _masm,
++                        Address src,
++                        Register dst,
++                        DecoratorSet decorators) {
++  assert_cond(_masm != NULL);
++  __ load_heap_oop(dst, src, x7, x11, decorators);
++}
++
+ static void do_oop_store_rv(MacroAssembler* _masm,
+                          Address obj,
+                          Register val,
+@@ -223,13 +240,6 @@ static void do_oop_store_rv(MacroAssembler* _masm,
+   }
+ }
+ 
+-static void do_oop_load(InterpreterMacroAssembler* _masm,
+-                        Address src,
+-                        Register dst,
+-                        DecoratorSet decorators) {
+-  assert_cond(_masm != NULL);
+-  __ load_heap_oop(dst, src, x7, x11, decorators);
+-}
+ 
+ Address TemplateTable::at_bcp(int offset) {
+   assert(_desc->uses_bcp(), "inconsistent uses_bcp information");
+@@ -1309,8 +1319,8 @@ void TemplateTable::aastore() {
+   // Get the value we will store
+   __ ld(x10, at_tos());
+   // Now store using the appropriate barrier
+-  //do_oop_store(_masm, element_address, x10, IS_ARRAY);
+-  do_oop_store_rv(_masm, element_address, x10, _bs->kind(), true);
++  do_oop_store(_masm, element_address, x10, IS_ARRAY);
++  //do_oop_store_rv(_masm, element_address, x10, _bs->kind(), true);
+   __ j(done);
+ 
+   // Have a NULL in x10, x13=array, x12=index.  Store NULL at ary[idx]
+@@ -1318,7 +1328,7 @@ void TemplateTable::aastore() {
+   __ profile_null_seen(x12);
+ 
+   // Store a NULL
+-  //do_oop_store(_masm, element_address, noreg, IS_ARRAY);
++ // do_oop_store(_masm, element_address, noreg, IS_ARRAY);
+   do_oop_store_rv(_masm, element_address, noreg, _bs->kind(), true);
+ 
+   // Pop stack arguments
+@@ -2743,8 +2753,8 @@ void TemplateTable::getfield_or_static(int byte_no, bool is_static)
+   __ sub(t0, flags, atos);
+   __ bnez(t0, notObj);
+   // atos
+-  //do_oop_load(_masm, field, x10, IN_HEAP);
+-  __ load_heap_oop_rv(x10, field);
++  do_oop_load(_masm, field, x10, IN_HEAP);
++  //__ load_heap_oop_rv(x10, field);
+   __ push(atos);
+   /*if (rc == may_rewrite) {
+     patch_bytecode(Bytecodes::_fast_agetfield, bc, x11);
+@@ -3032,7 +3042,7 @@ void TemplateTable::putfield_or_static(int byte_no, bool is_static) {
+     __ add(off, obj, off); // if static, obj from cache, else obj from stack.
+     const Address field(off, 0);
+     // Store into the field
+-    do_oop_store_rv(_masm, field, x10, _bs->kind(), false);
++    //do_oop_store_rv(_masm, field, x10, _bs->kind(), false);
+     /*if (rc == may_rewrite) {
+       patch_bytecode(Bytecodes::_fast_aputfield, bc, x11, true, byte_no);
+     }*/
+@@ -3496,8 +3506,8 @@ void TemplateTable::fast_xaccess(TosState state)
+     break;
+   case atos:
+     //__ add(x10, x10, x11);
+-    //do_oop_load(_masm, Address(x10, 0), x10, IN_HEAP);
+-    __ load_heap_oop_rv(x10, Address(x10, x11, Address::lsl(0)));
++    do_oop_load(_masm, Address(x10, 0), x10, IN_HEAP);
++    //__ load_heap_oop_rv(x10, Address(x10, x11, Address::lsl(0)));
+     __ verify_oop(x10);
+     break;
+   case ftos:

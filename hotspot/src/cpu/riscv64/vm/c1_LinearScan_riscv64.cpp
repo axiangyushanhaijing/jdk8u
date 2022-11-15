@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 1997, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright (c) 2014, Red Hat Inc. All rights reserved.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved. All rights reserved.
  * Copyright (c) 2020, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -24,23 +23,11 @@
  *
  */
 
-#ifndef CPU_RISCV64_VM_ASSEMBLER_RISCV64_INLINE_HPP
-#define CPU_RISCV64_VM_ASSEMBLER_RISCV64_INLINE_HPP
+#include "precompiled.hpp"
+#include "c1/c1_Instruction.hpp"
+#include "c1/c1_LinearScan.hpp"
+#include "utilities/bitMap.inline.hpp"
 
-#include "asm/assembler.inline.hpp"
-#include "asm/codeBuffer.hpp"
-
-inline bool Assembler::is_imm_in_range(long value, unsigned bits, unsigned align_bits) {
-  intx sign_bits = (value >> (bits + align_bits - 1));
-  return ((value & right_n_bits(align_bits)) == 0) && ((sign_bits == 0) || (sign_bits == -1));
+void LinearScan::allocate_fpu_stack() {
+  // No FPU stack on RISCV64
 }
-
-inline bool Assembler::is_unsigned_imm_in_range(intx value, unsigned bits, unsigned align_bits) {
-  return (value >= 0) && ((value & right_n_bits(align_bits)) == 0) && ((value >> (align_bits + bits)) == 0);
-}
-
-inline bool Assembler::is_offset_in_range(intx offset, unsigned bits) {
-  return is_imm_in_range(offset, bits, 0);
-}
-
-#endif // CPU_RISCV64_VM_ASSEMBLER_RISCV64_INLINE_HPP

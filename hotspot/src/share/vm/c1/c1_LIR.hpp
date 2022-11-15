@@ -452,7 +452,7 @@ class LIR_OprDesc: public CompilationResourceObj {
   // for compatibility with RInfo
   int fpu () const                                  { return lo_reg_half(); }
 #endif
-#if defined(SPARC) || defined(ARM) || defined(PPC) || defined(AARCH64)
+#if defined(SPARC) || defined(ARM) || defined(PPC) || defined(AARCH64) || defined(RISCV64)
   FloatRegister as_float_reg   () const;
   FloatRegister as_double_reg  () const;
 #endif
@@ -542,7 +542,7 @@ class LIR_Address: public LIR_OprPtr {
      , _type(type)
      , _disp(0) { verify(); }
 
-#if defined(X86) || defined(ARM) || defined(AARCH64)
+#if defined(X86) || defined(ARM) || defined(AARCH64) || defined(RISCV64)
   LIR_Address(LIR_Opr base, LIR_Opr index, Scale scale, intx disp, BasicType type):
        _base(base)
      , _index(index)
@@ -563,13 +563,14 @@ class LIR_Address: public LIR_OprPtr {
   virtual void print_value_on(outputStream* out) const PRODUCT_RETURN;
 
   void verify0() const PRODUCT_RETURN;
+  void verify_rv() const PRODUCT_RETURN;
 #if defined(LIR_ADDRESS_PD_VERIFY) && !defined(PRODUCT)
   void pd_verify() const;
   void verify() const { pd_verify(); }
 #else
   void verify() const { verify0(); }
 #endif
-
+ 
   static Scale scale(BasicType type);
 };
 
@@ -616,22 +617,27 @@ class LIR_OprFact: public AllStatic {
   static LIR_Opr single_fpu(int reg)            { return (LIR_Opr)(intptr_t)((reg  << LIR_OprDesc::reg1_shift) |
                                                                              LIR_OprDesc::float_type           |
                                                                              LIR_OprDesc::fpu_register         |
-                                                                             LIR_OprDesc::single_size); }
+                                                                             LIR_OprDesc::single_size); } 
 #if defined(C1_LIR_MD_HPP)
 # include C1_LIR_MD_HPP
-#elif defined(SPARC)
+#elif defined(SPARC) 
   static LIR_Opr double_fpu(int reg1, int reg2) { return (LIR_Opr)(intptr_t)((reg1 << LIR_OprDesc::reg1_shift) |
                                                                              (reg2 << LIR_OprDesc::reg2_shift) |
                                                                              LIR_OprDesc::double_type          |
                                                                              LIR_OprDesc::fpu_register         |
                                                                              LIR_OprDesc::double_size); }
-#elif defined(X86) || defined(AARCH64)
+#elif defined(X86) || defined(AARCH64) || defined(RISCV64)
+  static LIR_Opr double_fpu(int reg1, int reg2 = -1 /*fnoreg*/);  
   static LIR_Opr double_fpu(int reg)            { return (LIR_Opr)(intptr_t)((reg  << LIR_OprDesc::reg1_shift) |
                                                                              (reg  << LIR_OprDesc::reg2_shift) |
                                                                              LIR_OprDesc::double_type          |
                                                                              LIR_OprDesc::fpu_register         |
                                                                              LIR_OprDesc::double_size); }
-
+  static LIR_Opr double_fpu_rv(int reg)            { return (LIR_Opr)(intptr_t)((reg  << LIR_OprDesc::reg1_shift) |
+                                                                             (reg  << LIR_OprDesc::reg2_shift) |
+                                                                             LIR_OprDesc::double_type          |
+                                                                             LIR_OprDesc::fpu_register         |
+                                                                             LIR_OprDesc::double_size); }
   static LIR_Opr single_xmm(int reg)            { return (LIR_Opr)(intptr_t)((reg  << LIR_OprDesc::reg1_shift) |
                                                                              LIR_OprDesc::float_type           |
                                                                              LIR_OprDesc::fpu_register         |
@@ -1474,7 +1480,7 @@ class LIR_OpConvert: public LIR_Op1 {
  private:
    Bytecodes::Code _bytecode;
    ConversionStub* _stub;
-#if defined(PPC) || defined(AARCH64)
+#if defined(PPC) || defined(AARCH64) || defined(RISCV64)
   LIR_Opr _tmp1;
   LIR_Opr _tmp2;
 #endif
@@ -1489,7 +1495,7 @@ class LIR_OpConvert: public LIR_Op1 {
 #endif
      , _bytecode(code)                           {}
 
-#if defined(PPC) || defined(AARCH64)
+#if defined(PPC) || defined(AARCH64) || defined(RISCV64)
    LIR_OpConvert(Bytecodes::Code code, LIR_Opr opr, LIR_Opr result, ConversionStub* stub
                  ,LIR_Opr tmp1, LIR_Opr tmp2)
      : LIR_Op1(lir_convert, opr, result)
@@ -1796,6 +1802,63 @@ class LIR_Op3: public LIR_Op {
 
   virtual void emit_code(LIR_Assembler* masm);
   virtual LIR_Op3* as_Op3() { return this; }
+  virtual void print_instr(outputStream* out) const PRODUCT_RETURN;
+};
+
+
+class LIR_Op4: public LIR_Op {
+  friend class LIR_OpVisitState;
+ protected:
+  LIR_Opr   _opr1;
+  LIR_Opr   _opr2;
+  LIR_Opr   _opr3;
+  LIR_Opr   _opr4;
+  BasicType _type;
+  LIR_Opr   _tmp1;
+  LIR_Opr   _tmp2;
+  LIR_Opr   _tmp3;
+  LIR_Opr   _tmp4;
+  LIR_Opr   _tmp5;
+  LIR_Condition _condition;
+
+ public:
+  LIR_Op4(LIR_Code code, LIR_Condition condition, LIR_Opr opr1, LIR_Opr opr2, LIR_Opr opr3, LIR_Opr opr4,
+          LIR_Opr result, BasicType type)
+    : LIR_Op(code, result, NULL)
+    , _opr1(opr1)
+    , _opr2(opr2)
+    , _opr3(opr3)
+    , _opr4(opr4)
+    , _type(type)
+    , _condition(condition)
+    , _tmp1(LIR_OprFact::illegalOpr)
+    , _tmp2(LIR_OprFact::illegalOpr)
+    , _tmp3(LIR_OprFact::illegalOpr)
+    , _tmp4(LIR_OprFact::illegalOpr)
+    , _tmp5(LIR_OprFact::illegalOpr) {
+    assert(code == lir_cmove, "code check");
+    assert(type != T_ILLEGAL, "cmove should have type");
+  }
+
+  LIR_Opr in_opr1() const                        { return _opr1; }
+  LIR_Opr in_opr2() const                        { return _opr2; }
+  LIR_Opr in_opr3() const                        { return _opr3; }
+  LIR_Opr in_opr4() const                        { return _opr4; }
+  BasicType type()  const                        { return _type; }
+  LIR_Opr tmp1_opr() const                       { return _tmp1; }
+  LIR_Opr tmp2_opr() const                       { return _tmp2; }
+  LIR_Opr tmp3_opr() const                       { return _tmp3; }
+  LIR_Opr tmp4_opr() const                       { return _tmp4; }
+  LIR_Opr tmp5_opr() const                       { return _tmp5; }
+  LIR_Condition cond() const                     { return _condition; }
+
+  void set_in_opr1(LIR_Opr opr)                  { _opr1 = opr; }
+  void set_in_opr2(LIR_Opr opr)                  { _opr2 = opr; }
+  void set_in_opr3(LIR_Opr opr)                  { _opr3 = opr; }
+  void set_in_opr4(LIR_Opr opr)                  { _opr4 = opr; }
+  virtual void emit_code(LIR_Assembler* masm);
+  virtual LIR_Op4* as_Op4() { return this; }
+
   virtual void print_instr(outputStream* out) const PRODUCT_RETURN;
 };
 

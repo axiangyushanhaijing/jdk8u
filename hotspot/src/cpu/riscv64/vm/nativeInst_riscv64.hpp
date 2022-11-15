@@ -28,8 +28,11 @@
 #define CPU_RISCV64_VM_NATIVEINST_RISCV64_HPP
 
 #include "asm/assembler.hpp"
+#include "asm/assembler.inline.hpp"
 #include "runtime/icache.hpp"
+#include "memory/allocation.hpp"
 #include "runtime/os.hpp"
+#include "utilities/top.hpp"
 
 // We have interfaces for the following instructions:
 // - NativeInstruction
@@ -243,7 +246,7 @@ class NativeCall: public NativeInstruction {
     if (is_jal()) {
       intptr_t offset = (intptr_t)(dest - instruction_address());
       assert((offset & 0x1) == 0, "should be aligned");
-      assert(is_imm_in_range(offset, 20, 1), "set_destination, offset is too large to be patched in one jal insrusction\n");
+      assert(Assembler::is_imm_in_range(offset, 20, 1), "set_destination, offset is too large to be patched in one jal insrusction\n");
       unsigned int insn = 0b1101111; // jal
       address pInsn = (address)(&insn);
       Assembler::patch(pInsn, 31, 31, (offset >> 20) & 0x1);

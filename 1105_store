@@ -1,0 +1,89 @@
+diff --git a/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.cpp b/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.cpp
+index 11390f905f..320b63f484 100644
+--- a/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.cpp
++++ b/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.cpp
+@@ -306,9 +306,9 @@ void InterpreterMacroAssembler::load_resolved_reference_at_index(
+ 
+ 
+ void InterpreterMacroAssembler::load_resolved_klass_at_offset(
+-                                Register cpool, Register index, Register temp) {
+-  slli(temp, index, LogBytesPerWord);
+-  add(temp, temp, cpool);
++                                Register cpool, Register index, Register temp, Register temp2) {
++  slli(temp2, index, LogBytesPerWord);
++  add(temp, temp2, cpool);
+   ld(temp, Address(temp, sizeof(ConstantPool))); // temp = resolved_klass_index
+   //ld(klass, Address(cpool, ConstantPool::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
+   //slli(temp, temp, LogBytesPerWord);
+diff --git a/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.hpp b/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.hpp
+index 6ed5bdf466..955db0c869 100644
+--- a/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.hpp
++++ b/hotspot/src/cpu/riscv64/vm/interp_masm_riscv64.hpp
+@@ -136,7 +136,7 @@ class InterpreterMacroAssembler: public MacroAssembler {
+ 
+   // Load cpool->resolved_klass_at(index).
+  // void load_resolved_klass_at_offset(Register cpool, Register index, Register klass, Register temp);
+-   void load_resolved_klass_at_offset(Register cpool,Register index,  Register temp);
++   void load_resolved_klass_at_offset(Register cpool,Register index,  Register temp, Register temp2);
+ 
+   void pop_ptr(Register r = x10);
+   void pop_i(Register r = x10);
+diff --git a/hotspot/src/cpu/riscv64/vm/stubGenerator_riscv64.cpp b/hotspot/src/cpu/riscv64/vm/stubGenerator_riscv64.cpp
+index 21cb78faac..825da54f8f 100644
+--- a/hotspot/src/cpu/riscv64/vm/stubGenerator_riscv64.cpp
++++ b/hotspot/src/cpu/riscv64/vm/stubGenerator_riscv64.cpp
+@@ -1111,7 +1111,10 @@ void gen_write_ref_array_post_barrier(Register start, Register end, Register scr
+       if (VerifyOops)
+         verify_oop_array(size, d, count, x28);
+       __ sub(count, count, 1); // make an inclusive end pointer
+-      __ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
++      //__ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
++      __ slli(d, count, exact_log2(size));
++      __ add(d, d, count);
++      __ ld(count,Address(d, 0));
+       gen_write_ref_array_post_barrier(d, count, t1);
+     }
+  
+@@ -1172,7 +1175,10 @@ void gen_write_ref_array_post_barrier(Register start, Register end, Register scr
+       if (VerifyOops)
+         verify_oop_array(size, d, count, x28);
+       __ sub(count, count, 1); // make an inclusive end pointer
+-      __ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
++      //__ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
++      __ slli(d, count, exact_log2(size));
++      __ add(d, d, count);
++      __ ld(count,Address(d, 0));
+       gen_write_ref_array_post_barrier(d, count, t1);
+     }
+ 
+diff --git a/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp b/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
+index 2d62764415..6e6339a485 100644
+--- a/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
++++ b/hotspot/src/cpu/riscv64/vm/templateTable_riscv64.cpp
+@@ -3882,7 +3882,7 @@ void TemplateTable::_new() {
+   __ bnez(t1, slow_case);
+ 
+   // get InstanceKlass
+-  __ load_resolved_klass_at_offset(x14, x13, x14);
++  __ load_resolved_klass_at_offset(x14, x13, x14, t0);
+ 
+   // make sure klass is initialized & doesn't have finalizer
+   // make sure klass is fully initialized
+@@ -4038,7 +4038,7 @@ void TemplateTable::checkcast()
+   // Get superklass in x10 and subklass in x13
+   __ bind(quicked);
+   __ mv(x13, x10); // Save object in x13; x10 needed for subtype check
+-  __ load_resolved_klass_at_offset(x12, x9, x10); // x10 = klass
++  __ load_resolved_klass_at_offset(x12, x9, x10, t0); // x10 = klass
+ 
+   __ bind(resolved);
+   __ load_klass(x9, x13);
+@@ -4096,7 +4096,7 @@ void TemplateTable::instanceof() {
+   // Get superklass in x10 and subklass in x13
+   __ bind(quicked);
+   __ load_klass(x13, x10);
+-  __ load_resolved_klass_at_offset(x12, x9, x10);
++  __ load_resolved_klass_at_offset(x12, x9, x10, t0);
+ 
+   __ bind(resolved);
+ 
