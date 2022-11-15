@@ -1699,7 +1699,7 @@ bool size_fits_all_mem_uses(AddPNode* addp, int shift) {
   return true;
 }
 
-const bool Matcher::convi2l_type_required = false;
+/*const bool Matcher::convi2l_type_required = false;
 
 // Should the Matcher clone shifts on addressing modes, expecting them
 // to be subsumed into complex addressing expressions or compute them
@@ -1742,7 +1742,7 @@ bool Matcher::clone_address_expressions(AddPNode* m, Matcher::MStack& mstack, Ve
   }
   return false;
 }
-
+*/
 void Compile::reshape_address(AddPNode* addp) {
 }
 
