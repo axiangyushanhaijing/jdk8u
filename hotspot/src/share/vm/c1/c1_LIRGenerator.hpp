@@ -252,6 +252,8 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void do_FPIntrinsics(Intrinsic* x);
   void do_Reference_get(Intrinsic* x);
   void do_update_CRC32(Intrinsic* x);
+  void do_update_CRC32C(Intrinsic* x);
+  void do_vectorizedMismatch(Intrinsic* x);
 
   void do_UnsafePrefetch(UnsafePrefetch* x, bool is_store);
 
@@ -261,11 +263,13 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   // convenience functions
   LIR_Opr call_runtime(Value arg1, address entry, ValueType* result_type, CodeEmitInfo* info);
   LIR_Opr call_runtime(Value arg1, Value arg2, address entry, ValueType* result_type, CodeEmitInfo* info);
-
+  void negate(LIR_Opr left, LIR_Opr dest, LIR_Opr tmp = LIR_OprFact::illegalOpr);
   // GC Barriers
 
   // generic interface
-
+  LIR_Opr atomic_cmpxchg(BasicType type, LIR_Opr addr, LIRItem& cmp_value, LIRItem& new_value);
+  LIR_Opr atomic_xchg(BasicType type, LIR_Opr addr, LIRItem& new_value);
+  LIR_Opr atomic_add(BasicType type, LIR_Opr addr, LIRItem& new_value);
   void pre_barrier(LIR_Opr addr_opr, LIR_Opr pre_val, bool do_load, bool patch, CodeEmitInfo* info);
   void post_barrier(LIR_OprDesc* addr, LIR_OprDesc* new_val);
 
@@ -283,6 +287,7 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void CardTableModRef_post_barrier_helper(LIR_OprDesc* addr, LIR_Const* card_table_base);
 #endif
 
+ void array_store_check(LIR_Opr value, LIR_Opr array, CodeEmitInfo* store_check_info, ciMethod* profiled_method, int profiled_bci);
 
   static LIR_Opr result_register_for(ValueType* type, bool callee = false);
 
@@ -333,7 +338,7 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void monitor_exit  (LIR_Opr object, LIR_Opr lock, LIR_Opr hdr, LIR_Opr scratch, int monitor_no);
 
   void new_instance    (LIR_Opr  dst, ciInstanceKlass* klass, bool is_unresolved, LIR_Opr  scratch1, LIR_Opr  scratch2, LIR_Opr  scratch3,  LIR_Opr scratch4, LIR_Opr  klass_reg, CodeEmitInfo* info);
-
+  void do_LibmIntrinsic(Intrinsic* x);
   // machine dependent
   void cmp_mem_int(LIR_Condition condition, LIR_Opr base, int disp, int c, CodeEmitInfo* info);
   void cmp_reg_mem(LIR_Condition condition, LIR_Opr reg, LIR_Opr base, int disp, BasicType type, CodeEmitInfo* info);
@@ -364,7 +369,12 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
 
   LIR_Opr safepoint_poll_register();
 
+  //void profile_branch(If* if_instr, If::Condition cond);
+#ifdef NO_FLAG_REG
+  void profile_branch(If* if_instr, If::Condition cond, LIR_Opr left, LIR_Opr right);
+#else
   void profile_branch(If* if_instr, If::Condition cond);
+#endif
   void increment_event_counter_impl(CodeEmitInfo* info,
                                     ciMethod *method, int frequency,
                                     int bci, bool backedge, bool notify);

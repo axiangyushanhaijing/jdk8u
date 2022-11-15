@@ -116,6 +116,6 @@ using MacroAssembler::null_check;
   static const int c1_double_branch_mask = 1 << 3; // depend on c1_float_cond_branch
   void c1_cmp_branch(int cmpFlag, Register op1, Register op2, Label& label, BasicType type, bool is_far);
   void c1_float_cmp_branch(int cmpFlag, FloatRegister op1, FloatRegister op2, Label& label,
-                           bool is_far, bool is_unordered = false);
+                           bool is_far, bool is_unordered = false);                     
 
 #endif // CPU_RISCV64_VM_C1_MACROASSEMBLER_RISCV64_HPP
