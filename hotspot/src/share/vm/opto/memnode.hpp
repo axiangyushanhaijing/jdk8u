@@ -956,7 +956,7 @@ public:
                    Node* s1, Node* c1, Node* s2, Node* c2):
     Node(control, char_array_mem, s1, c1, s2, c2) {
   }
-
+typedef enum ArgEncoding { LL, LU, UL, UU, none } ArgEnc;
   StrIntrinsicNode(Node* control, Node* char_array_mem,
                    Node* s1, Node* s2, Node* c):
     Node(control, char_array_mem, s1, s2, c) {
