@@ -1743,8 +1743,8 @@ bool Matcher::clone_address_expressions(AddPNode* m, Matcher::MStack& mstack, Ve
   return false;
 }
 */
-void Compile::reshape_address(AddPNode* addp) {
-}
+//void Compile::reshape_address(AddPNode* addp) {
+//}
 
 %}
 
