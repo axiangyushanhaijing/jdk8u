@@ -13,3 +13,9 @@ test/nashorn/lib
 NashornProfile.txt
 **/JTreport/**
 **/JTwork/**
+/diff/*
+/patch/*
+/*.log
+/*.diff
+/c1/*
+/.vscode

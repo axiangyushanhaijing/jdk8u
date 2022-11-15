@@ -29,18 +29,17 @@
 
 #include "asm/assembler.inline.hpp"
 #include "asm/codeBuffer.hpp"
-#include "code/codeCache.hpp"
 
-inline bool is_imm_in_range(long value, unsigned bits, unsigned align_bits) {
+inline bool Assembler::is_imm_in_range(long value, unsigned bits, unsigned align_bits) {
   intx sign_bits = (value >> (bits + align_bits - 1));
   return ((value & right_n_bits(align_bits)) == 0) && ((sign_bits == 0) || (sign_bits == -1));
 }
 
-inline bool is_unsigned_imm_in_range(intx value, unsigned bits, unsigned align_bits) {
+inline bool Assembler::is_unsigned_imm_in_range(intx value, unsigned bits, unsigned align_bits) {
   return (value >= 0) && ((value & right_n_bits(align_bits)) == 0) && ((value >> (align_bits + bits)) == 0);
 }
 
-inline bool is_offset_in_range(intx offset, unsigned bits) {
+inline bool Assembler::is_offset_in_range(intx offset, unsigned bits) {
   return is_imm_in_range(offset, bits, 0);
 }
 

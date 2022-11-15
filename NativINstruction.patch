@@ -1,0 +1,14 @@
+diff --git a/hotspot/src/cpu/riscv64/vm/macroAssembler_riscv64.cpp b/hotspot/src/cpu/riscv64/vm/macroAssembler_riscv64.cpp
+index ef64c609ab..7d0c778ea1 100644
+--- a/hotspot/src/cpu/riscv64/vm/macroAssembler_riscv64.cpp
++++ b/hotspot/src/cpu/riscv64/vm/macroAssembler_riscv64.cpp
+@@ -2076,7 +2076,7 @@ void MacroAssembler::membar(uint32_t order_constraint) {
+   address prev = pc() - NativeMembar::instruction_size;
+   address last = code()->last_insn();
+ 
+-  if (last != NULL && nativeInstruction_at(last)->is_membar() && prev == last) {
++  if (last != NULL  && prev == last && nativeInstruction_at(last)->is_membar()) {
+     NativeMembar *bar = NativeMembar_at(prev);
+     // We are merging two memory barrier instructions.  On RISCV we
+     // can do this simply by ORing them together.
+(END)

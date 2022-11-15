@@ -28,8 +28,8 @@
 #define CPU_RISCV64_VM_ASSEMBLER_RISCV64_HPP
 
 #include "asm/register.hpp"
-#include "assembler_riscv64.inline.hpp"
-#include "utilities/debug.hpp"
+//#include "assembler_riscv64.inline.hpp"
+//#include "utilities/debug.hpp"
 
 #define registerSize 64
 
@@ -383,7 +383,9 @@ public:
   void tail(Label &l, Register temp) {
     tail(target(l), temp);
   }
-
+  static bool is_imm_in_range(long value, unsigned bits, unsigned align_bits) ;
+  static bool is_unsigned_imm_in_range(intx value, unsigned bits, unsigned align_bits);
+  static bool is_offset_in_range(intx offset, unsigned bits);
   static inline uint32_t extract(uint32_t val, unsigned msb, unsigned lsb) {
     assert_cond(msb >= lsb && msb <= 31);
     unsigned nbits = msb - lsb + 1;
