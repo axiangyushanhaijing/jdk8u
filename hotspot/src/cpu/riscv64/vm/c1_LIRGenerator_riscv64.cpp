@@ -260,6 +260,8 @@ void LIRGenerator::array_store_check(LIR_Opr value, LIR_Opr array, CodeEmitInfo*
 //----------------------------------------------------------------------
 //             visitor functions
 //----------------------------------------------------------------------
+void LIRGenerator::do_StoreIndexed(StoreIndexed* x) {}
+void LIRGenerator::do_UnsafeGetAndSetObject(UnsafeGetAndSetObject* x) {}
 
 void LIRGenerator::do_MonitorEnter(MonitorEnter* x) {
   assert(x->is_pinned(), "");

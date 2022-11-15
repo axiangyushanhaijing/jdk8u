@@ -316,7 +316,7 @@ void NativeJump::patch_verified_entry(address entry, address verified_entry, add
   // Patch this nmethod atomically.
   if (Assembler::reachable_from_branch_at(verified_entry, dest)) {
     ptrdiff_t offset = dest - verified_entry;
-    guarantee(is_imm_in_range(offset, 20, 1), "offset is too large to be patched in one jal insrusction."); // 1M
+    guarantee(Assembler::is_imm_in_range(offset, 20, 1), "offset is too large to be patched in one jal insrusction."); // 1M
 
     uint32_t insn = 0;
     address pInsn = (address)&insn;

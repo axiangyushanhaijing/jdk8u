@@ -33,6 +33,7 @@
 #include "memory/allocation.hpp"
 #include "runtime/os.hpp"
 #include "utilities/top.hpp"
+#include "utilities/align.hpp"
 
 // We have interfaces for the following instructions:
 // - NativeInstruction

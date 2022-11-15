@@ -198,6 +198,8 @@
           "Minimum number of unroll loop bodies before checking progress"   \
           "of rounds of unroll,optimize,..")                                \
                                                                             \
+  product(bool, UseCMoveUnconditionally, false,                             \
+          "Use CMove (scalar and vector) ignoring profitability test.")     \
   develop(intx, UnrollLimitForProfileCheck, 1,                              \
           "Don't use profile_trip_cnt() to restrict unrolling until "       \
           "unrolling would push the number of unrolled iterations above "   \
