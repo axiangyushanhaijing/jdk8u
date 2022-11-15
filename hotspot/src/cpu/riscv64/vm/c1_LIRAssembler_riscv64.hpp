@@ -65,21 +65,6 @@ private:
 
   void deoptimize_trap(CodeEmitInfo *info);
 
-  enum
-  {
-    // see emit_static_call_stub for detail:
-    // CompiledStaticCall::to_interp_stub_size() (14) + CompiledStaticCall::to_trampoline_stub_size() (1 + 3 + address)
-    call_stub_size = 14 * NativeInstruction::instruction_size +
-                      (NativeInstruction::instruction_size + NativeCallTrampolineStub::instruction_size),
-    call_aot_stub_size = 0,
-    // see emit_exception_handler for detail:
-    // verify_not_null_oop + far_call + should_not_reach_here + invalidate_registers(DEBUG_ONLY)
-    exception_handler_size = DEBUG_ONLY(584) NOT_DEBUG(548), // or smaller
-    // see emit_deopt_handler for detail
-    // auipc (1) + far_jump (6 or 2)
-    deopt_handler_size = 1 * NativeInstruction::instruction_size +
-                          6 * NativeInstruction::instruction_size // or smaller
-  };
 
   void check_conflict(ciKlass* exact_klass, intptr_t current_klass, Register tmp,
                       Label &next, Label &none, Address mdo_addr);
@@ -123,5 +108,21 @@ public:
 
   void store_parameter(Register r, int offset_from_rsp_in_words);
   void store_parameter(jint c, int offset_from_rsp_in_words);
+    enum
+  {
+    // see emit_static_call_stub for detail:
+    // CompiledStaticCall::to_interp_stub_size() (14) + CompiledStaticCall::to_trampoline_stub_size() (1 + 3 + address)
+    call_stub_size = 14 * NativeInstruction::instruction_size +
+                      (NativeInstruction::instruction_size + NativeCallTrampolineStub::instruction_size),
+    call_aot_stub_size = 0,
+    // see emit_exception_handler for detail:
+    // verify_not_null_oop + far_call + should_not_reach_here + invalidate_registers(DEBUG_ONLY)
+    exception_handler_size = DEBUG_ONLY(584) NOT_DEBUG(548), // or smaller
+    // see emit_deopt_handler for detail
+    // auipc (1) + far_jump (6 or 2)
+    deopt_handler_size = 1 * NativeInstruction::instruction_size +
+                          6 * NativeInstruction::instruction_size // or smaller
+  };
+
 
 #endif // CPU_RISCV64_VM_C1_LIRASSEMBLER_RISCV64_HPP
