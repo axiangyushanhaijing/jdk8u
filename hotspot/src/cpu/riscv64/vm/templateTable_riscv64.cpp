@@ -3725,16 +3725,18 @@ void TemplateTable::invokeinterface(int byte_no) {
   invokevirtual_helper(xmethod, x12, x13);
   __ bind(notObjectMethod);
 
-  Label no_such_interface;
+  //Label no_such_interface;
 
+  // Check receiver klass into x13 - also a null check
+  __ restore_locals();
+  __ null_check(x12, oopDesc::klass_offset_in_bytes());
+  __ load_klass(x13, x12);
   // Check for private method invocation - indicated by vfinal
-  Label notVFinal;
+  Label no_such_interface, no_such_method;
+  /*Label notVFinal;
   __ andi(t0, x13, 1UL << ConstantPoolCacheEntry::is_vfinal_shift);
   __ beqz(t0, notVFinal);
 
-  // Check receiver klass into x13 - also a null check
-  __ null_check(x12, oopDesc::klass_offset_in_bytes());
-  __ load_klass(x13, x12);
 
   Label subtype;
   __ check_klass_subtype(x13, x10, x14, subtype);
@@ -3758,7 +3760,7 @@ void TemplateTable::invokeinterface(int byte_no) {
   // Preserve method for the throw_AbstractMethodErrorVerbose.
   __ mv(x28, xmethod);
   // Receiver subtype check against REFC.
-  // Superklass in x10. Subklass in x13. Blows t1, x30
+  // Superklass in x10. Subklass in x13. Blows t1, x30*/
   __ lookup_interface_method(// inputs: rec. class, interface, itable index
                              x13, x10, noreg,
                              // outputs: scan temp. reg, scan temp. reg
