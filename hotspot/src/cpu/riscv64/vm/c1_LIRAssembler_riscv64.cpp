@@ -1783,7 +1783,7 @@ void LIR_Assembler::leal(LIR_Opr addr, LIR_Opr dest, LIR_PatchCode patch_code, C
       offset += index_op->as_constant_ptr()->as_jint() << scale;
     }
 
-    if(!is_imm_in_range(offset, 12, 0)) {
+    if(!Assembler::is_imm_in_range(offset, 12, 0)) {
       __ la(t0, as_Address(adr));
       __ mv(dst, t0);
       return;
