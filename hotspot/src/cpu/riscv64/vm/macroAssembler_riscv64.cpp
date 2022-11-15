@@ -3057,6 +3057,7 @@ void MacroAssembler::check_klass_subtype_fast_path(Register sub_klass,
   add(t0, sub_klass, super_check_offset);
   Address super_check_addr(t0);
   ld(t0, super_check_addr); // load displayed supertype
+ 
 
   // Ths check has worked decisively for primary supers.
   // Secondary supers are sought in the super_cache ('super_cache_addr').

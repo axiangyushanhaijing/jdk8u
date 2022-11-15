@@ -137,9 +137,11 @@ void MethodHandles::jump_to_lambda_form(MacroAssembler* _masm,
 
   // Load the invoker, as MH -> MH.form -> LF.vmentry
   __ verify_oop(recv);
-  __ load_heap_oop_rv(method_temp, Address(recv, NONZERO(java_lang_invoke_MethodHandle::form_offset_in_bytes())));
+  //__ load_heap_oop_rv(method_temp, Address(recv, NONZERO(java_lang_invoke_MethodHandle::form_offset_in_bytes())));
+  __ load_heap_oop(method_temp, Address(recv, NONZERO(java_lang_invoke_MethodHandle::form_offset_in_bytes())), temp2);
   __ verify_oop(method_temp);
-  __ load_heap_oop_rv(method_temp, Address(method_temp, NONZERO(java_lang_invoke_LambdaForm::vmentry_offset_in_bytes())));
+  //__ load_heap_oop_rv(method_temp, Address(method_temp, NONZERO(java_lang_invoke_LambdaForm::vmentry_offset_in_bytes())));
+  __ load_heap_oop(method_temp, Address(method_temp, NONZERO(java_lang_invoke_LambdaForm::vmentry_offset_in_bytes())), temp2);
   __ verify_oop(method_temp);
   __ ld(method_temp, Address(method_temp, NONZERO(java_lang_invoke_MemberName::vmtarget_offset_in_bytes())));
   //__ verify_oop(method_temp);
@@ -310,7 +312,8 @@ void MethodHandles::generate_method_handle_dispatch(MacroAssembler* _masm,
       if (VerifyMethodHandles && iid != vmIntrinsics::_linkToInterface) {
         Label L_ok;
         Register temp2_defc = temp2;
-        __ load_heap_oop_rv(temp2_defc, member_clazz);
+        //__ load_heap_oop_rv(temp2_defc, member_clazz);
+        __ load_heap_oop(temp2_defc, member_clazz, temp3);
         load_klass_from_Class(_masm, temp2_defc);
         __ verify_klass_ptr(temp2_defc);
         __ check_klass_subtype(temp1_recv_klass, temp2_defc, temp3, L_ok);
@@ -363,7 +366,7 @@ void MethodHandles::generate_method_handle_dispatch(MacroAssembler* _masm,
       // pick out the vtable index from the MemberName, and then we can discard it:
       Register temp2_index = temp2;
       //__ access_load_at(T_ADDRESS, IN_HEAP, temp2_index, member_vmindex, noreg, noreg);
-      __ ld(xmethod, member_vmtarget);
+      __ ld(temp2_index, member_vmindex);
 
       if (VerifyMethodHandles) {
         Label L_index_ok;
@@ -389,7 +392,7 @@ void MethodHandles::generate_method_handle_dispatch(MacroAssembler* _masm,
       }
 
       Register temp3_intf = temp3;
-      __ load_heap_oop_rv(temp3_intf, member_clazz);
+      __ load_heap_oop(temp3_intf, member_clazz);
       load_klass_from_Class(_masm, temp3_intf);
       __ verify_klass_ptr(temp3_intf);
 
