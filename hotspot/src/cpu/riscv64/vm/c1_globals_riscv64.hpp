@@ -43,7 +43,6 @@ define_pd_global(bool, ProfileTraps,                 false);
 define_pd_global(bool, UseOnStackReplacement,        true );
 define_pd_global(bool, TieredCompilation,            false);
 define_pd_global(intx, CompileThreshold,             1500 );
-define_pd_global(intx, BackEdgeThreshold,            100000);
 
 define_pd_global(intx, OnStackReplacePercentage,     933  );
 define_pd_global(intx, FreqInlineSize,               325  );
@@ -69,5 +68,5 @@ define_pd_global(bool, LIRFillDelaySlots,            false);
 define_pd_global(bool, OptimizeSinglePrecision,      true );
 define_pd_global(bool, CSEArrayLength,               false);
 define_pd_global(bool, TwoOperandLIRForm,            false );
-define_pd_global(intx, SafepointPollOffset,          0  );
+
 #endif // CPU_RISCV64_VM_C1_GLOBALS_RISCV64_HPP
