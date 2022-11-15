@@ -628,8 +628,6 @@ class LIR_OprFact: public AllStatic {
                                                                              LIR_OprDesc::double_size); }
 #elif defined(X86) || defined(AARCH64) || defined(RISCV64)
 
-  static LIR_Opr double_fpu(int reg1, int reg2 = -1 /*fnoreg*/);  
-
   static LIR_Opr double_fpu(int reg)            { return (LIR_Opr)(intptr_t)((reg  << LIR_OprDesc::reg1_shift) |
                                                                              (reg  << LIR_OprDesc::reg2_shift) |
                                                                              LIR_OprDesc::double_type          |
