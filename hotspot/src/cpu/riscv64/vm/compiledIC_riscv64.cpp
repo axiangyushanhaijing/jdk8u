@@ -33,19 +33,6 @@
 #include "runtime/mutexLocker.hpp"
 #include "runtime/safepoint.hpp"
 
-void CompiledIC::cleanup_call_site(virtual_call_Relocation* call_site) {
-  // This call site might have become stale so inspect it carefully.
-  NativeCall* call = nativeCall_at(call_site->addr());
-  if (is_icholder_entry(call->destination())) {
-    NativeMovConstReg* value = nativeMovConstReg_at(call_site->cached_value());
-    InlineCacheBuffer::queue_for_release((CompiledICHolder*)value->data());
-  }
-}
-/*bool CompiledIC::is_icholder_call_site(virtual_call_Relocation* call_site) {
-  // This call site might have become stale so inspect it carefully.
-  NativeCall* call = nativeCall_at(call_site->addr());
-  return is_icholder_entry(call->destination());
-}*/
 // ----------------------------------------------------------------------------
 
 #define __ _masm.
@@ -145,13 +132,13 @@ void CompiledStaticCall::set_stub_to_clean(static_stub_Relocation* static_stub) 
 
 void CompiledStaticCall::verify() {
   // Verify call.
-  NativeCall::verify();
+  _call->verify();
   if (os::is_MP()) {
-    verify_alignment();
+    _call->verify_alignment();
   }
 
   // Verify stub.
-  address stub = find_stub();
+  address stub = find_stub(false /* is_aot */);
   assert(stub != NULL, "no stub found for static call");
   // Creation also verifies the object.
   NativeMovConstReg* method_holder

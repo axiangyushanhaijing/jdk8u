@@ -367,7 +367,7 @@ class CodeBuffer: public StackObj {
   CodeStrings  _code_strings;
   OopRecorder  _default_oop_recorder;  // override with initialize_oop_recorder
   Arena*       _overflow_arena;
-  address          _last_insn;
+
   address      _decode_begin;   // start address for decode
   address      decode_begin();
 
@@ -380,8 +380,6 @@ class CodeBuffer: public StackObj {
     _oop_recorder    = NULL;
     _decode_begin    = NULL;
     _overflow_arena  = NULL;
-    _last_insn       =NULL;
-    _code_strings    =CodeStrings();
   }
 
   void initialize(address code_start, csize_t code_size) {
@@ -568,9 +566,7 @@ class CodeBuffer: public StackObj {
 
   OopRecorder* oop_recorder() const   { return _oop_recorder; }
   CodeStrings& strings()              { return _code_strings; }
-  address last_insn() const { return _last_insn; }
-  void set_last_insn(address a) { _last_insn = a; }
-  void clear_last_insn() { set_last_insn(NULL); }
+
   void free_strings() {
     if (!_code_strings.is_null()) {
       _code_strings.free(); // sets _strings Null as a side-effect.

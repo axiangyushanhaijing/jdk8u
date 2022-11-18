@@ -224,13 +224,6 @@ IRT_ENTRY(void, InterpreterRuntime::multianewarray(JavaThread* thread, jint* fir
   thread->set_vm_result(obj);
 IRT_END
 
-IRT_ENTRY(void, InterpreterRuntime::throw_AbstractMethodErrorWithMethod(JavaThread* thread,
-                                                                        Method* missingMethod))
-  ResourceMark rm(thread);
-  assert(missingMethod != NULL, "sanity");
-  methodHandle m(thread, missingMethod);
-  LinkResolver::throw_abstract_method_error(m, THREAD);
-IRT_END
 
 IRT_ENTRY(void, InterpreterRuntime::register_finalizer(JavaThread* thread, oopDesc* obj))
   assert(obj->is_oop(), "must be a valid oop");
@@ -1300,7 +1293,7 @@ IRT_ENTRY(void, InterpreterRuntime::prepare_native_call(JavaThread* thread, Meth
   // preparing the same method will be sure to see non-null entry & mirror.
 IRT_END
 
-#if defined(IA32) || defined(AMD64) || defined(ARM) || defined(AARCH64) || defined(RISCV64)
+#if defined(IA32) || defined(AMD64) || defined(ARM) || defined(AARCH64)
 IRT_LEAF(void, InterpreterRuntime::popframe_move_outgoing_args(JavaThread* thread, void* src_address, void* dest_address))
   if (src_address == dest_address) {
     return;

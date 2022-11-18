@@ -30,7 +30,7 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/codeCache.hpp"
 #include "code/icBuffer.hpp"
-//#include "code/nativeInst.hpp"
+#include "code/nativeInst.hpp"
 #include "code/vtableStubs.hpp"
 #include "interpreter/interpreter.hpp"
 #include "jvm.h"
@@ -41,7 +41,7 @@
 #include "runtime/arguments.hpp"
 #include "runtime/extendedPC.hpp"
 #include "runtime/frame.inline.hpp"
-//#include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/java.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/mutexLocker.hpp"
@@ -53,9 +53,6 @@
 #include "utilities/debug.hpp"
 #include "utilities/events.hpp"
 #include "utilities/vmError.hpp"
-#include "prims/jvm.h"
-#include "jvm_linux.h"
-#include "mutex_linux.inline.hpp"
 
 // put OS-includes here
 # include <dlfcn.h>
@@ -90,43 +87,29 @@ char* os::non_memory_address_word() {
   return (char*) -1;
 }
 
-address os::Linux::ucontext_get_pc( ucontext_t * uc) {
+address os::Linux::ucontext_get_pc(const ucontext_t * uc) {
   return (address)uc->uc_mcontext.__gregs[REG_PC];
-}
-void os::initialize_thread(Thread *thr) {
 }
 
 void os::Linux::ucontext_set_pc(ucontext_t * uc, address pc) {
   uc->uc_mcontext.__gregs[REG_PC] = (intptr_t)pc;
 }
 
-intptr_t* os::Linux::ucontext_get_sp( ucontext_t * uc) {
+intptr_t* os::Linux::ucontext_get_sp(const ucontext_t * uc) {
   return (intptr_t*)uc->uc_mcontext.__gregs[REG_SP];
 }
 
-intptr_t* os::Linux::ucontext_get_fp( ucontext_t * uc) {
+intptr_t* os::Linux::ucontext_get_fp(const ucontext_t * uc) {
   return (intptr_t*)uc->uc_mcontext.__gregs[REG_FP];
 }
 
-static address handle_unsafe_access(JavaThread* thread, address pc) {
-  // pc is the instruction which we must emulate
-  // doing a no-op is fine:  return garbage from the load
-  // therefore, compute npc
-  address npc = pc + NativeCall::instruction_size;
-
-  // request an async exception
-  thread->set_pending_unsafe_access_error();
- 
-  // return address of next instruction to execute
-  return npc;
-}
 // For Forte Analyzer AsyncGetCallTrace profiling support - thread
 // is currently interrupted by SIGPROF.
 // os::Solaris::fetch_frame_from_ucontext() tries to skip nested signal
 // frames. Currently we don't do that on Linux, so it's the same as
 // os::fetch_frame_from_context().
 ExtendedPC os::Linux::fetch_frame_from_ucontext(Thread* thread,
-   ucontext_t* uc, intptr_t** ret_sp, intptr_t** ret_fp) {
+  const ucontext_t* uc, intptr_t** ret_sp, intptr_t** ret_fp) {
 
   assert(thread != NULL, "just checking");
   assert(ret_sp != NULL, "just checking");
@@ -135,11 +118,11 @@ ExtendedPC os::Linux::fetch_frame_from_ucontext(Thread* thread,
   return os::fetch_frame_from_context(uc, ret_sp, ret_fp);
 }
 
-ExtendedPC os::fetch_frame_from_context( void* ucVoid,
+ExtendedPC os::fetch_frame_from_context(const void* ucVoid,
                                         intptr_t** ret_sp, intptr_t** ret_fp) {
 
   ExtendedPC  epc;
-   ucontext_t* uc = ( ucontext_t*)ucVoid;
+  const ucontext_t* uc = (const ucontext_t*)ucVoid;
 
   if (uc != NULL) {
     epc = ExtendedPC(os::Linux::ucontext_get_pc(uc));
@@ -163,7 +146,7 @@ ExtendedPC os::fetch_frame_from_context( void* ucVoid,
   return epc;
 }
 
-frame os::fetch_frame_from_context( void* ucVoid) {
+frame os::fetch_frame_from_context(const void* ucVoid) {
   intptr_t* frame_sp = NULL;
   intptr_t* frame_fp = NULL;
   ExtendedPC epc = fetch_frame_from_context(ucVoid, &frame_sp, &frame_fp);
@@ -234,7 +217,7 @@ NOINLINE frame os::current_frame() {
   }
 }
 
-/*bool os::is_first_C_frame(frame* fr) {
+bool os::is_first_C_frame(frame* fr) {
   // Load up sp, fp, sender sp and sender fp, check for reasonable values.
   // Check usp first, because if that's bad the other accessors may fault
   // on some architectures.  Ditto ufp second, etc.
@@ -280,7 +263,7 @@ NOINLINE frame os::current_frame() {
   }
 
   return false;
-}*/
+}
 
 int os::get_native_stack(address* stack, int frames, int toSkip) {
   int frame_idx = 0;
@@ -319,7 +302,7 @@ JVM_handle_linux_signal(int sig,
                         int abort_if_unrecognized) {
   ucontext_t* uc = (ucontext_t*) ucVoid;
 
-  Thread* t = ThreadLocalStorage::get_thread_slow();
+  Thread* t = Thread::current_or_null_safe();
 
   // Must do this before SignalHandlerMark, if crash protection installed we will longjmp away
   // (no destructors can be run)
@@ -382,21 +365,35 @@ JVM_handle_linux_signal(int sig,
       address addr = (address) info->si_addr;
 
       // check if fault address is within thread stack
- if (sig == SIGSEGV) {
-      address addr = (address) info->si_addr;
-
-      // check if fault address is within thread stack
-      if (addr < thread->stack_base() &&
-          addr >= thread->stack_base() - thread->stack_size()) {
+      if (thread->on_local_stack(addr)) {
         // stack overflow
-        if (thread->in_stack_yellow_zone(addr)) {
-          thread->disable_stack_yellow_zone();
+        if (thread->in_stack_yellow_reserved_zone(addr)) {
           if (thread->thread_state() == _thread_in_Java) {
+            if (thread->in_stack_reserved_zone(addr)) {
+              frame fr;
+              if (os::Linux::get_frame_at_stack_banging_point(thread, uc, &fr)) {
+                assert(fr.is_java_frame(), "Must be a Java frame");
+                frame activation =
+                  SharedRuntime::look_for_reserved_stack_annotated_method(thread, fr);
+                if (activation.sp() != NULL) {
+                  thread->disable_stack_reserved_zone();
+                  if (activation.is_interpreted_frame()) {
+                    thread->set_reserved_stack_activation((address)(
+                      activation.fp() + frame::interpreter_frame_initial_sp_offset));
+                  } else {
+                    thread->set_reserved_stack_activation((address)activation.unextended_sp());
+                  }
+                  return 1;
+                }
+              }
+            }
             // Throw a stack overflow exception.  Guard pages will be reenabled
             // while unwinding the stack.
+            thread->disable_stack_yellow_reserved_zone();
             stub = SharedRuntime::continuation_for_implicit_exception(thread, pc, SharedRuntime::STACK_OVERFLOW);
           } else {
             // Thread was in the vm or native code.  Return and try to finish.
+            thread->disable_stack_yellow_reserved_zone();
             return 1;
           }
         } else if (thread->in_stack_red_zone(addr)) {
@@ -446,10 +443,10 @@ JVM_handle_linux_signal(int sig,
         // here if the underlying file has been truncated.
         // Do not crash the VM in such a case.
         CodeBlob* cb = CodeCache::find_blob_unsafe(pc);
-        nmethod* nm = (cb != NULL && cb->is_nmethod()) ? (nmethod*)cb : NULL;
+        CompiledMethod* nm = (cb != NULL) ? cb->as_compiled_method_or_null() : NULL;
         if (nm != NULL && nm->has_unsafe_access()) {
           address next_pc = pc + NativeCall::instruction_size;
-          stub = handle_unsafe_access(thread, next_pc);
+          stub = SharedRuntime::handle_unsafe_access(thread, next_pc);
         }
       } else if (sig == SIGFPE  &&
           (info->si_code == FPE_INTDIV || info->si_code == FPE_FLTDIV)) {
@@ -468,7 +465,7 @@ JVM_handle_linux_signal(int sig,
                sig == SIGBUS && /* info->si_code == BUS_OBJERR && */
                thread->doing_unsafe_access()) {
       address next_pc = pc + NativeCall::instruction_size;
-      stub = handle_unsafe_access(thread, next_pc);
+      stub = SharedRuntime::handle_unsafe_access(thread, next_pc);
     }
 
     // jni_fast_Get<Primitive>Field can trap at certain pc's if a GC kicks in
@@ -522,12 +519,10 @@ JVM_handle_linux_signal(int sig,
   sigaddset(&newset, sig);
   sigprocmask(SIG_UNBLOCK, &newset, NULL);
 
-  VMError err(t, sig, pc, info, ucVoid);
-  err.report_and_die();
+  VMError::report_and_die(t, sig, pc, info, ucVoid);
 
   ShouldNotReachHere();
   return true; // Mute compiler
-}
 }
 
 void os::Linux::init_thread_fpu_state(void) {
@@ -546,68 +541,17 @@ void os::Linux::set_fpu_control_word(int fpu_control) {
 
 // Minimum usable stack sizes required to get to user code. Space for
 // HotSpot guard pages is added later.
-//size_t os::Posix::_compiler_thread_min_stack_allowed = 72 * K;
-//size_t os::Posix::_java_thread_min_stack_allowed = 72 * K;
-//size_t os::Posix::_vm_internal_thread_min_stack_allowed = 72 * K;
-size_t os::Linux::min_stack_allowed  = 64 * K;
-// return default stack size for thr_type
-size_t os::Linux::default_stack_size(os::ThreadType thr_type) {
-   // default stack size (compiler thread needs larger stack)
-   size_t s = (thr_type == os::compiler_thread ? 4 * M : 1 * M);
-   return s;
- }
-// amd64: pthread on amd64 is always in floating stack mode
-bool os::Linux::supports_variable_stack_size() {  return true; }
+size_t os::Posix::_compiler_thread_min_stack_allowed = 72 * K;
+size_t os::Posix::_java_thread_min_stack_allowed = 72 * K;
+size_t os::Posix::_vm_internal_thread_min_stack_allowed = 72 * K;
 
 // return default stack size for thr_type
-size_t os::Linux::default_guard_size(os::ThreadType thr_type) {
-  // Creating guard page is very expensive. Java thread has HotSpot
-  // guard page, only enable glibc guard page for non-Java threads.
-  return (thr_type == java_thread ? 0 : page_size());
+size_t os::Posix::default_stack_size(os::ThreadType thr_type) {
+  // default stack size (compiler thread needs larger stack)
+  size_t s = (thr_type == os::compiler_thread ? 4 * M : 1 * M);
+  return s;
 }
-static void current_stack_region(address * bottom, size_t * size) {
-  if (os::is_primordial_thread()) {
-     // primordial thread needs special handling because pthread_getattr_np()
-     // may return bogus value.
-     *bottom = os::Linux::initial_thread_stack_bottom();
-     *size   = os::Linux::initial_thread_stack_size();
-  } else {
-     pthread_attr_t attr;
 
-     int rslt = pthread_getattr_np(pthread_self(), &attr);
-
-     // JVM needs to know exact stack location, abort if it fails
-     if (rslt != 0) {
-       if (rslt == ENOMEM) {
-         vm_exit_out_of_memory(0, OOM_MMAP_ERROR, "pthread_getattr_np");
-       } else {
-         fatal(err_msg("pthread_getattr_np failed with errno = %d", rslt));
-       }
-     }
-
-     if (pthread_attr_getstack(&attr, (void **)bottom, size) != 0) {
-         fatal("Can not locate current stack attributes!");
-     }
-
-     pthread_attr_destroy(&attr);
-
-  }
-  assert(os::current_stack_pointer() >= *bottom &&
-         os::current_stack_pointer() < *bottom + *size, "just checking");
-}
-size_t os::current_stack_size() {
-  // stack size includes normal stack and HotSpot guard pages
-  address bottom;
-  size_t size;
-  current_stack_region(&bottom, &size);
-  return size;
-}
-address os::current_stack_base() {
-  address bottom;
-  size_t size;
-  current_stack_region(&bottom, &size);
-  return (bottom + size);
-}
 /////////////////////////////////////////////////////////////////////////////
 // helper functions for fatal error handler
 
@@ -621,12 +565,12 @@ static const char* reg_abi_names[] = {
   "x28(t3)", "x29(t4)","x30(t5)", "x31(t6)"
 };
 
-void os::print_context(outputStream *st, void *context) {
+void os::print_context(outputStream *st, const void *context) {
   if (context == NULL) {
     return;
   }
 
-   ucontext_t *uc = ( ucontext_t*)context;
+  const ucontext_t *uc = (const ucontext_t*)context;
   st->print_cr("Registers:");
   for (int r = 0; r < 32; r++) {
     st->print("%-*.*s=", 8, 8, reg_abi_names[r]);
@@ -647,12 +591,12 @@ void os::print_context(outputStream *st, void *context) {
   st->cr();
 }
 
-void os::print_register_info(outputStream *st,  void *context) {
+void os::print_register_info(outputStream *st, const void *context) {
   if (context == NULL) {
     return;
   }
 
-   ucontext_t *uc = ( ucontext_t*)context;
+  const ucontext_t *uc = (const ucontext_t*)context;
 
   st->print_cr("Register to memory mapping:");
   st->cr();
@@ -686,7 +630,7 @@ extern "C" {
     return 0;
   }
 
-  void _Copy_conjoint_jshorts_atomic(jshort* from, jshort* to, size_t count) {
+  void _Copy_conjoint_jshorts_atomic(const jshort* from, jshort* to, size_t count) {
     if (from > to) {
       const jshort *end = from + count;
       while (from < end) {
@@ -701,7 +645,7 @@ extern "C" {
       }
     }
   }
-  void _Copy_conjoint_jints_atomic(jint* from, jint* to, size_t count) {
+  void _Copy_conjoint_jints_atomic(const jint* from, jint* to, size_t count) {
     if (from > to) {
       const jint *end = from + count;
       while (from < end) {
@@ -716,7 +660,7 @@ extern "C" {
       }
     }
   }
-  void _Copy_conjoint_jlongs_atomic(jlong* from, jlong* to, size_t count) {
+  void _Copy_conjoint_jlongs_atomic(const jlong* from, jlong* to, size_t count) {
     if (from > to) {
       const jlong *end = from + count;
       while (from < end) {
@@ -732,22 +676,22 @@ extern "C" {
     }
   }
 
-  void _Copy_arrayof_conjoint_bytes(HeapWord* from,
+  void _Copy_arrayof_conjoint_bytes(const HeapWord* from,
                                     HeapWord* to,
                                     size_t    count) {
     memmove(to, from, count);
   }
-  void _Copy_arrayof_conjoint_jshorts(HeapWord* from,
+  void _Copy_arrayof_conjoint_jshorts(const HeapWord* from,
                                       HeapWord* to,
                                       size_t    count) {
     memmove(to, from, count * 2);
   }
-  void _Copy_arrayof_conjoint_jints(HeapWord* from,
+  void _Copy_arrayof_conjoint_jints(const HeapWord* from,
                                     HeapWord* to,
                                     size_t    count) {
     memmove(to, from, count * 4);
   }
-  void _Copy_arrayof_conjoint_jlongs(HeapWord* from,
+  void _Copy_arrayof_conjoint_jlongs(const HeapWord* from,
                                      HeapWord* to,
                                      size_t    count) {
     memmove(to, from, count * 8);

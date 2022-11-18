@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * reserved comment block
+ * DO NOT REMOVE OR ALTER!
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -22,7 +23,6 @@ package com.sun.org.apache.bcel.internal.classfile;
 
 
 import  com.sun.org.apache.bcel.internal.Constants;
-import  com.sun.org.apache.bcel.internal.generic.ConstantPoolGen;
 import  java.io.*;
 
 /**
@@ -36,7 +36,6 @@ import  java.io.*;
  * @see     Constant
  * @see     com.sun.org.apache.bcel.internal.generic.ConstantPoolGen
  * @author <A HREF="mailto:markus.dahm@berlin.de">M. Dahm</A>
- * @LastModified: May 2022
  */
 public class ConstantPool implements Cloneable, Node, Serializable {
   private int        constant_pool_count;
@@ -191,16 +190,9 @@ public class ConstantPool implements Cloneable, Node, Serializable {
    */
   public void dump(DataOutputStream file) throws IOException
   {
-    /*
-     * Constants over the size of the constant pool shall not be written out.
-     * This is a redundant measure as the ConstantPoolGen should have already
-     * reported an error back in the situation.
-     */
-    int size = constant_pool_count < ConstantPoolGen.CONSTANT_POOL_SIZE - 1 ?
-               constant_pool_count : ConstantPoolGen.CONSTANT_POOL_SIZE - 1;
+    file.writeShort(constant_pool_count);
 
-    file.writeShort(size);
-    for(int i=1; i < size; i++)
+    for(int i=1; i < constant_pool_count; i++)
       if(constant_pool[i] != null)
         constant_pool[i].dump(file);
   }

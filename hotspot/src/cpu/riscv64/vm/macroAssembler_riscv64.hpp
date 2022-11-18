@@ -28,7 +28,7 @@
 #define CPU_RISCV64_VM_MACROASSEMBLER_RISCV64_HPP
 
 #include "asm/assembler.hpp"
-#include "accessDecorators_riscv64.hpp"
+#include "oops/accessDecorators.hpp"
 // MacroAssembler extends Assembler by frequently used macros.
 //
 // Instructions for which a 'better' code sequence exists depending
@@ -42,7 +42,7 @@ class MacroAssembler: public Assembler {
   virtual ~MacroAssembler() {}
 
   void safepoint_poll(Label& slow_path);
- // void safepoint_poll_acquire(Label& slow_path);
+  void safepoint_poll_acquire(Label& slow_path);
 
   // Alignment
   void align(int modulus);
@@ -160,10 +160,6 @@ class MacroAssembler: public Assembler {
     call_VM_leaf_base(entry_point, number_of_arguments, &retaddr);
   }
 
-
-
-
-
   virtual void call_VM_base(           // returns the register containing the thread upon return
     Register oop_result,               // where an oop-result ends up if any; use noreg otherwise
     Register java_thread,              // the thread if computed before     ; use noreg otherwise
@@ -219,8 +215,6 @@ class MacroAssembler: public Assembler {
   // Used for storing NULL. All other oop constants should be
   // stored using routines that take a jobject.
   void store_heap_oop_null(Address dst);
-  void incr_allocated_bytes(Register var_size_in_bytes, int con_size_in_bytes,
-                           Register t1 = noreg);
 
   // This dummy is to prevent a call to store_heap_oop from
   // converting a zero (linke NULL) into a Register by giving
@@ -234,21 +228,6 @@ class MacroAssembler: public Assembler {
   // If the accessed location is M[reg + offset] and the offset is known, provide the
   // offset. No explicit code generateion is needed if the offset is within a certain
   // range (0 <= offset <= page_size).
-
-  //refer to aarch
-  void load_heap_oop_rv(Register dst, Address src);
-
-  void load_heap_oop_not_null_rv(Register dst, Address src);
-  void store_heap_oop_rv(Address dst, Register src);
-  void store_check(Register obj);                // store check for obj - register is destroyed afterwards
-  void store_check(Register obj, Address dst); 
-  void store_check_part_2(Register obj);
-  void store_check_part_1(Register obj);  
-
-  // currently unimplemented
-  // Used for storing NULL. All other oop constants should be
-  // stored using routines that take a jobject.
-  void store_heap_oop_null_rv(Address dst);
 
   virtual void null_check(Register reg, int offset = -1);
   static bool needs_explicit_null_check(intptr_t offset);
@@ -279,19 +258,6 @@ class MacroAssembler: public Assembler {
   // is up to you to ensure that the shift provided mathces the size
   // of your data.
   Address form_address(Register Rd, Register base, long byte_offset);
-
-  void g1_write_barrier_post(Register store_addr,
-                             Register new_val,
-                             Register thread,
-                             Register tmp,
-                             Register tmp2);
-
-  void g1_write_barrier_pre(Register obj,
-                            Register pre_val,
-                            Register thread,
-                            Register tmp,
-                            bool tosca_live,
-                            bool expand_call);
 
   // allocation
   void eden_allocate(
@@ -596,7 +562,6 @@ class MacroAssembler: public Assembler {
   void atomic_xchgalw(Register prev, Register newv, Register addr);
   void atomic_xchgwu(Register prev, Register newv, Register addr);
   void atomic_xchgalwu(Register prev, Register newv, Register addr);
-  
 
   // Biased locking support
   // lock_reg and obj_reg must be loaded up with the appropriate values.
@@ -618,12 +583,6 @@ class MacroAssembler: public Assembler {
 
   static bool far_branches() {
     return ReservedCodeCacheSize > branch_range;
-  }
-    // Load Effective Address
-  void lea(Register r, const Address &a) {
-    InstructionMark im(this);
-    code_section()->relocate(inst_mark(), a.rspec());
-    a.lea(this, r);
   }
 
   //atomic
@@ -719,7 +678,7 @@ class MacroAssembler: public Assembler {
   void build_frame(int framesize);
   void remove_frame(int framesize);
 
-  //void reserved_stack_check();
+  void reserved_stack_check();
   void get_polling_page(Register dest, address page, int32_t &offset, relocInfo::relocType rtype);
   address read_polling_page(Register r, address page, relocInfo::relocType rtype);
   address read_polling_page(Register r, int32_t offset, relocInfo::relocType rtype);

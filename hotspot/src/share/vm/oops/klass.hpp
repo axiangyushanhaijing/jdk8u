@@ -171,7 +171,7 @@ class Klass : public Metadata {
   jlong    _last_biased_lock_bulk_revocation_time;
   markOop  _prototype_header;   // Used when biased locking is both enabled and disabled for this type
   jint     _biased_lock_revocation_count;
-  int  _vtable_len;
+
   JFR_ONLY(DEFINE_TRACE_ID_FIELD;)
 
   // Remembered sets support for the oops in the klasses.
@@ -495,10 +495,7 @@ protected:
   // CDS support - remove and restore oops from metadata. Oops are not shared.
   virtual void remove_unshareable_info();
   virtual void restore_unshareable_info(ClassLoaderData* loader_data, Handle protection_domain, TRAPS);
-  static ByteSize vtable_start_offset();
-  static ByteSize vtable_length_offset() {
-  return byte_offset_of(Klass, _vtable_len);
-  }
+
  protected:
   // computes the subtype relationship
   virtual bool compute_is_subtype_of(Klass* k);
@@ -529,7 +526,6 @@ protected:
   // For classes, this returns the name with a leading 'L' and a trailing ';'
   //     and the package separators as '/'.
   virtual const char* signature_name() const;
-  const char* external_kind() const;
 
   // garbage collection support
   virtual void oop_follow_contents(oop obj) = 0;

@@ -96,7 +96,6 @@ class TemplateTable: AllStatic {
   enum Operation { add, sub, mul, div, rem, _and, _or, _xor, shl, shr, ushr };
   enum Condition { equal, not_equal, less, less_equal, greater, greater_equal };
   enum CacheByte { f1_byte = 1, f2_byte = 2 };  // byte_no codes
-  enum RewriteControl { may_rewrite, may_not_rewrite };  // control for fast code under CDS
 
  private:
   static bool            _is_initialized;        // true if TemplateTable has been initialized
@@ -164,7 +163,7 @@ class TemplateTable: AllStatic {
   static void wide_fload();
   static void wide_dload();
   static void wide_aload();
-  static void iload_internal(RewriteControl rc = may_rewrite);
+
   static void iaload();
   static void laload();
   static void faload();
@@ -180,7 +179,6 @@ class TemplateTable: AllStatic {
   static void dload(int n);
   static void aload(int n);
   static void aload_0();
-  static void aload_0_internal(RewriteControl rc);
 
   static void istore();
   static void lstore();
@@ -302,7 +300,7 @@ class TemplateTable: AllStatic {
   static void getstatic(int byte_no);
   static void putstatic(int byte_no);
   static void pop_and_check_object(Register obj);
-  static void condy_helper(Label& Done);  // shared by ldc instances
+
   static void _new();
   static void newarray();
   static void anewarray();

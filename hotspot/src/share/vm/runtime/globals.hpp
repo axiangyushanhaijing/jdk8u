@@ -624,9 +624,6 @@ class CommandLineFlags {
   product(intx, UseSSE, 99,                                                 \
           "Highest supported SSE instructions set on x86/x64")              \
                                                                             \
-  product(bool, UseFMA, false,                                              \
-          "Control whether FMA instructions are used when available")       \
-                                                                            \
   product(bool, UseAES, false,                                              \
           "Control whether AES instructions can be used on x86/x64")        \
                                                                             \
@@ -745,9 +742,6 @@ class CommandLineFlags {
   product(bool, UseAESIntrinsics, false,                                    \
           "Use intrinsics for AES versions of crypto")                      \
                                                                             \
- diagnostic(bool, UseAESCTRIntrinsics, false,                               \
-          "Use intrinsics for the paralleled version of AES/CTR crypto")    \
-                                                                            \
   product(bool, UseSHA1Intrinsics, false,                                   \
           "Use intrinsics for SHA-1 crypto hash function")                  \
                                                                             \
@@ -759,9 +753,6 @@ class CommandLineFlags {
                                                                             \
   product(bool, UseCRC32Intrinsics, false,                                  \
           "use intrinsics for java.util.zip.CRC32")                         \
-                                                                            \
-  diagnostic(bool, UseCRC32CIntrinsics, false,                              \
-          "use intrinsics for java.util.zip.CRC32C")                        \
                                                                             \
   develop(bool, TraceCallFixup, false,                                      \
           "Trace all call fixups")                                          \
@@ -2658,9 +2649,6 @@ class CommandLineFlags {
                                                                             \
   develop(bool, EagerInitialization, false,                                 \
           "Eagerly initialize classes if possible")                         \
-                                                                            \
-  diagnostic(bool, LogTouchedMethods, false,                                \
-          "Log methods which have been ever touched in runtime")            \
                                                                             \
   develop(bool, TraceMethodReplacement, false,                              \
           "Print when methods are replaced do to recompilation")            \

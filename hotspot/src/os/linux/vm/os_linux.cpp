@@ -1418,7 +1418,7 @@ void os::Linux::clock_init() {
 
 #ifndef SYS_clock_getres
 
-#if defined(IA32) || defined(AMD64) || defined(AARCH64) || defined(RISCV64)
+#if defined(IA32) || defined(AMD64) || defined(AARCH64)
 #define SYS_clock_getres IA32_ONLY(266)  AMD64_ONLY(229) AARCH64_ONLY(114)
 #define sys_clock_getres(x,y)  ::syscall(SYS_clock_getres, x, y)
 #else
@@ -2968,7 +2968,7 @@ int os::Linux::sched_getcpu_syscall(void) {
   typedef long (*vgetcpu_t)(unsigned int *cpu, unsigned int *node, unsigned long *tcache);
   vgetcpu_t vgetcpu = (vgetcpu_t)VSYSCALL_ADDR(__NR_vgetcpu);
   retval = vgetcpu(&cpu, NULL, NULL);
-#elif defined(IA32) || defined(AARCH64) || defined(RISCV64)
+#elif defined(IA32) || defined(AARCH64)
 # ifndef SYS_getcpu
 #  define SYS_getcpu AARCH64_ONLY(168) IA32_ONLY(318)
 # endif
@@ -3526,7 +3526,7 @@ size_t os::Linux::find_large_page_size() {
 
 #ifndef ZERO
   large_page_size = IA32_ONLY(4 * M) AMD64_ONLY(2 * M) IA64_ONLY(256 * M) SPARC_ONLY(4 * M)
-                     ARM_ONLY(2 * M) PPC_ONLY(4 * M) AARCH64_ONLY(2 * M) RISCV64_ONLY(2 * M);
+                     ARM_ONLY(2 * M) PPC_ONLY(4 * M) AARCH64_ONLY(2 * M);
 #endif // ZERO
 
   FILE *fp = fopen("/proc/meminfo", "r");

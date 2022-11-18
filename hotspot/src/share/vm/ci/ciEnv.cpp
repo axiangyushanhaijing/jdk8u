@@ -587,6 +587,7 @@ ciKlass* ciEnv::get_klass_by_index(constantPoolHandle cpool,
 ciConstant ciEnv::get_constant_by_index_impl(constantPoolHandle cpool,
                                              int pool_index, int cache_index,
                                              ciInstanceKlass* accessor) {
+  bool ignore_will_link;
   EXCEPTION_CONTEXT;
   int index = pool_index;
   if (cache_index >= 0) {
@@ -633,8 +634,8 @@ ciConstant ciEnv::get_constant_by_index_impl(constantPoolHandle cpool,
       return ciConstant(T_OBJECT, constant);
     }
   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
-    bool will_link;
-    ciKlass* klass = get_klass_by_index_impl(cpool, index, will_link, accessor);
+    // 4881222: allow ldc to take a class type
+    ciKlass* klass = get_klass_by_index_impl(cpool, index, ignore_will_link, accessor);
     if (HAS_PENDING_EXCEPTION) {
       CLEAR_PENDING_EXCEPTION;
       record_out_of_memory_failure();
@@ -642,8 +643,7 @@ ciConstant ciEnv::get_constant_by_index_impl(constantPoolHandle cpool,
     }
     assert (klass->is_instance_klass() || klass->is_array_klass(),
             "must be an instance or array klass ");
-    ciInstance* mirror = (will_link ? klass->java_mirror() : get_unloaded_klass_mirror(klass));
-    return ciConstant(T_OBJECT, mirror);
+    return ciConstant(T_OBJECT, klass->java_mirror());
   } else if (tag.is_method_type()) {
     // must execute Java code to link this CP entry into cache[i].f1
     ciSymbol* signature = get_symbol(cpool->method_type_signature_at(index));
@@ -651,7 +651,6 @@ ciConstant ciEnv::get_constant_by_index_impl(constantPoolHandle cpool,
     return ciConstant(T_OBJECT, ciobj);
   } else if (tag.is_method_handle()) {
     // must execute Java code to link this CP entry into cache[i].f1
-    bool ignore_will_link;
     int ref_kind        = cpool->method_handle_ref_kind_at(index);
     int callee_index    = cpool->method_handle_klass_index_at(index);
     ciKlass* callee     = get_klass_by_index_impl(cpool, callee_index, ignore_will_link, accessor);

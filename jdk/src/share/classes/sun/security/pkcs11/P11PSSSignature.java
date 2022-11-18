@@ -341,6 +341,9 @@ final class P11PSSSignature extends SignatureSpi {
 
         int keySize = 0; // in bytes
         if (mechInfo != null) {
+            // check against available native info
+            int minKeySize = (int) mechInfo.ulMinKeySize;
+            int maxKeySize = (int) mechInfo.ulMaxKeySize;
             if (key instanceof P11Key) {
                 keySize = (((P11Key) key).length() + 7) >> 3;
             } else if (key instanceof RSAKey) {
@@ -348,16 +351,13 @@ final class P11PSSSignature extends SignatureSpi {
             } else {
                 throw new InvalidKeyException("Unrecognized key type " + key);
             }
-            // check against available native info which are in bits
-            if ((mechInfo.iMinKeySize != 0) &&
-                    (keySize < (mechInfo.iMinKeySize >> 3))) {
+            if ((minKeySize != -1) && (keySize < minKeySize)) {
                 throw new InvalidKeyException(KEY_ALGO +
-                    " key must be at least " + mechInfo.iMinKeySize + " bits");
+                    " key must be at least " + minKeySize + " bytes");
             }
-            if ((mechInfo.iMaxKeySize != Integer.MAX_VALUE) &&
-                    (keySize > (mechInfo.iMaxKeySize >> 3))) {
+            if ((maxKeySize != -1) && (keySize > maxKeySize)) {
                 throw new InvalidKeyException(KEY_ALGO +
-                    " key must be at most " + mechInfo.iMaxKeySize + " bits");
+                    " key must be at most " + maxKeySize + " bytes");
             }
         }
         if (this.sigParams != null) {

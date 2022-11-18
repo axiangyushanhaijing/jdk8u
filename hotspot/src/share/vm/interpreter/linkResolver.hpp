@@ -179,7 +179,7 @@ class LinkResolver: AllStatic {
   static void resolve_special_call  (CallInfo& result, Handle recv, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, TRAPS);
   static void resolve_virtual_call  (CallInfo& result, Handle recv, KlassHandle recv_klass, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, bool check_null_and_abstract, TRAPS);
   static void resolve_interface_call(CallInfo& result, Handle recv, KlassHandle recv_klass, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, bool check_null_and_abstract, TRAPS);
-  static void resolve_handle_call   (CallInfo& result,                                      KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, TRAPS);
+  static void resolve_handle_call   (CallInfo& result,                                      KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, TRAPS);
   static void resolve_dynamic_call  (CallInfo& result,                                      Handle bootstrap_specifier, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, TRAPS);
 
   // same as above for compile-time resolution; but returns null handle instead of throwing an exception on error
@@ -206,19 +206,6 @@ class LinkResolver: AllStatic {
   static void resolve_invokehandle   (CallInfo& result,              constantPoolHandle pool, int index, TRAPS);
 
   static void resolve_invoke         (CallInfo& result, Handle recv, constantPoolHandle pool, int index, Bytecodes::Code byte, TRAPS);
-public:
-  // Only resolved method known.
-  static void throw_abstract_method_error(const methodHandle& resolved_method, TRAPS) {
-    throw_abstract_method_error(resolved_method, NULL, NULL, CHECK);
-  }
-  // Resolved method and receiver klass know.
-  static void throw_abstract_method_error(const methodHandle& resolved_method, Klass *recv_klass, TRAPS) {
-    throw_abstract_method_error(resolved_method, NULL, recv_klass, CHECK);
-  }
-  // Selected method is abstract.
-  static void throw_abstract_method_error(const methodHandle& resolved_method,
-                                          const methodHandle& selected_method,
-                                          Klass *recv_klass, TRAPS);
 };
 
 #endif // SHARE_VM_INTERPRETER_LINKRESOLVER_HPP

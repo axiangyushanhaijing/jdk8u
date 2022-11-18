@@ -492,10 +492,6 @@ class JvmtiDeferredEvent VALUE_OBJ_CLASS_SPEC {
 
   // Actually posts the event.
   void post() NOT_JVMTI_RETURN;
-  // Sweeper support to keep nmethods from being zombied while in the queue.
-  void nmethods_do(CodeBlobClosure* cf) NOT_JVMTI_RETURN;
-  // GC support to keep nmethod from being unloaded while in the queue.
-  void oops_do(OopClosure* f, CodeBlobClosure* cf) NOT_JVMTI_RETURN;
 };
 
 /**
@@ -515,7 +511,7 @@ class JvmtiDeferredEventQueue : AllStatic {
     QueueNode(const JvmtiDeferredEvent& event)
       : _event(event), _next(NULL) {}
 
-    JvmtiDeferredEvent& event() { return _event; }
+    const JvmtiDeferredEvent& event() const { return _event; }
     QueueNode* next() const { return _next; }
 
     void set_next(QueueNode* next) { _next = next; }
@@ -533,10 +529,6 @@ class JvmtiDeferredEventQueue : AllStatic {
   static bool has_events() NOT_JVMTI_RETURN_(false);
   static void enqueue(const JvmtiDeferredEvent& event) NOT_JVMTI_RETURN;
   static JvmtiDeferredEvent dequeue() NOT_JVMTI_RETURN_(JvmtiDeferredEvent());
-  // Sweeper support to keep nmethods from being zombied while in the queue.
-  static void nmethods_do(CodeBlobClosure* cf) NOT_JVMTI_RETURN;
-  // GC support to keep nmethod from being unloaded while in the queue.
-  static void oops_do(OopClosure* f, CodeBlobClosure* cf) NOT_JVMTI_RETURN;
 
   // Used to enqueue events without using a lock, for times (such as during
   // safepoint) when we can't or don't want to lock the Service_lock.
