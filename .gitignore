@@ -13,3 +13,12 @@ test/nashorn/lib
 NashornProfile.txt
 **/JTreport/**
 **/JTwork/**
+javac_log/
+*.diff
+*.log
+/patch
+radare2/
+*.java
+/c1_diff
+/diff
+*.zip

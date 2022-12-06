@@ -602,7 +602,7 @@ oop SharedRuntime::retrieve_receiver( Symbol* sig, frame caller ) {
   assert(Universe::heap()->is_in(result) && result->is_oop(), "receiver must be an oop");
   return result;
 }
-JRT_ENTRY(void, SharedRuntime::throw_delayed_StackOverflowError(JavaThread* thread))
+/*JRT_ENTRY(void, SharedRuntime::throw_delayed_StackOverflowError(JavaThread* thread))
   throw_StackOverflowError_common(thread, true);
 JRT_END
 
@@ -623,7 +623,7 @@ void SharedRuntime::throw_StackOverflowError_common(JavaThread* thread, bool del
   // Increment counter for hs_err file reporting
   Atomic::inc(&Exceptions::_stack_overflow_errors);
   throw_and_post_jvmti_exception(thread, exception);
-}
+}*/
 
 void SharedRuntime::throw_and_post_jvmti_exception(JavaThread *thread, Handle h_exception) {
   if (JvmtiExport::can_post_on_exceptions()) {

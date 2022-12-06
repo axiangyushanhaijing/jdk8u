@@ -197,8 +197,8 @@ class SharedRuntime: AllStatic {
   static void    throw_NullPointerException(JavaThread* thread);
   static void    throw_NullPointerException_at_call(JavaThread* thread);
   static void    throw_StackOverflowError(JavaThread* thread);
-  static void    throw_delayed_StackOverflowError(JavaThread* thread);
-  static void    throw_StackOverflowError_common(JavaThread* thread, bool delayed);
+  //static void    throw_delayed_StackOverflowError(JavaThread* thread);
+  //static void    throw_StackOverflowError_common(JavaThread* thread, bool delayed);
   static address continuation_for_implicit_exception(JavaThread* thread,
                                                      address faulting_pc,
                                                      ImplicitExceptionKind exception_kind);
