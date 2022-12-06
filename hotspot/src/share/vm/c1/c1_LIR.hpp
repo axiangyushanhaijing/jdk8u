@@ -374,7 +374,7 @@ class LIR_OprDesc: public CompilationResourceObj {
 
   bool is_float_kind() const   { return is_pointer() ? pointer()->is_float_kind() : (kind_field() == fpu_register); }
   bool is_oop() const;
-
+  NO_FLAGREG_ONLY(bool has_common_register(LIR_Opr opr) const;)
   // semantic for fpu- and xmm-registers:
   // * is_float and is_double return true for xmm_registers
   //   (so is_single_fpu and is_single_xmm are true)

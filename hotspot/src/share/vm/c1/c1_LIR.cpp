@@ -194,7 +194,43 @@ char LIR_OprDesc::type_char(BasicType t) {
       return '?';
   }
 }
+#ifdef NO_FLAG_REG
+bool LIR_OprDesc::has_common_register(LIR_Opr opr) const {
 
+  if (!(is_register() && opr->is_register())) {
+    return false;
+  }
+
+  if (is_single_cpu()) {
+    Register dst = as_register();
+    if (opr->is_single_cpu()) {
+      return dst == opr->as_register();
+    } else if (opr->is_double_cpu()) {
+      return dst == opr->as_register_lo();
+    }
+  } else if (is_double_cpu()) {
+    Register dst_lo = as_register_lo();
+    if (opr->is_single_cpu()) {
+      return dst_lo == opr->as_register();
+    } else if (opr->is_double_cpu()) {
+      return dst_lo == opr->as_register_lo();
+    }
+  } else if (is_single_fpu()) {
+    if (opr->is_single_fpu()) {
+      return as_float_reg() == opr->as_float_reg();
+    } else if (opr->is_double_fpu()) {
+      return as_float_reg() == opr->as_double_reg();
+    }
+  } else if (is_double_fpu()) {
+    if (opr->is_single_fpu()) {
+      return as_double_reg() == opr->as_float_reg();
+    }else if (opr->is_double_fpu()) {
+     return as_double_reg() == opr->as_double_reg();
+    }
+  }
+  return false;
+}
+#endif
 #ifndef PRODUCT
 void LIR_OprDesc::validate_type() const {
 
@@ -603,7 +639,7 @@ void LIR_OpVisitState::visit(LIR_Op* op) {
       assert(opConvert->_info == NULL, "must be");
       if (opConvert->_opr->is_valid())       do_input(opConvert->_opr);
       if (opConvert->_result->is_valid())    do_output(opConvert->_result);
-#if defined(PPC) || defined(AARCH64)
+#if defined(PPC) || defined(AARCH64) 
       if (opConvert->_tmp1->is_valid())      do_temp(opConvert->_tmp1);
       if (opConvert->_tmp2->is_valid())      do_temp(opConvert->_tmp2);
 #endif
@@ -2023,6 +2059,10 @@ void LIR_Op1::print_patch_code(outputStream* out, LIR_PatchCode code) {
 // LIR_OpBranch
 void LIR_OpBranch::print_instr(outputStream* out) const {
   print_condition(out, cond());             out->print(" ");
+#ifdef NO_FLAG_REG
+  in_opr1()->print(out); out->print(" ");
+  in_opr2()->print(out); out->print(" ");
+#endif
   if (block() != NULL) {
     out->print("[B%d] ", block()->block_id());
   } else if (stub() != NULL) {
@@ -2109,7 +2149,11 @@ void LIR_OpRoundFP::print_instr(outputStream* out) const {
 
 // LIR_Op2
 void LIR_Op2::print_instr(outputStream* out) const {
-  if (code() == lir_cmove) {
+#ifndef NO_FLAG_REG
+  if (code() == lir_cmove || code() == lir_cmp) {
+#else
+  if (code() == lir_branch || code() == lir_cond_float_branch) {
+#endif
     print_condition(out, condition());         out->print(" ");
   }
   in_opr1()->print(out);    out->print(" ");

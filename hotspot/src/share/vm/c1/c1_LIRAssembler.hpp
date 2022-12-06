@@ -116,9 +116,9 @@ class LIR_Assembler: public CompilationResourceObj {
   // patching
   void append_patching_stub(PatchingStub* stub);
   void patching_epilog(PatchingStub* patch, LIR_PatchCode patch_code, Register obj, CodeEmitInfo* info);
-
+#ifndef NO_FLAG_REG
   void comp_op(LIR_Condition condition, LIR_Opr src, LIR_Opr result, LIR_Op2* op);
-
+#endif
   PatchingStub::PatchID patching_id(CodeEmitInfo* info);
 
  public:
@@ -229,7 +229,11 @@ class LIR_Assembler: public CompilationResourceObj {
   void comp_mem_op(LIR_Opr src, LIR_Opr result, BasicType type, CodeEmitInfo* info);  // info set for null exceptions
   void comp_fl2i(LIR_Code code, LIR_Opr left, LIR_Opr right, LIR_Opr result, LIR_Op2* op);
   void cmove(LIR_Condition code, LIR_Opr left, LIR_Opr right, LIR_Opr result, BasicType type);
+#ifndef NO_FLAG_REG
+  void cmove(LIR_Condition code, LIR_Opr left, LIR_Opr right, LIR_Opr result, BasicType type);
+#else
   void emit_cmove(LIR_Op4* op);
+#endif
   void call(        LIR_OpJavaCall* op, relocInfo::relocType rtype);
   void ic_call(     LIR_OpJavaCall* op);
   void vtable_call( LIR_OpJavaCall* op);
