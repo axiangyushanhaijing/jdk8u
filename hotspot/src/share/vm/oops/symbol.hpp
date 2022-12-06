@@ -216,11 +216,11 @@ class Symbol : private SymbolBase {
     // Treating the symbol as a signature, print the return
   // type to the outputStream. Prints external names as 'double' or
   // 'java.lang.Object[][]'.
-  void print_as_signature_external_return_type(outputStream *os);
+  //void print_as_signature_external_return_type(outputStream *os);
   // Treating the symbol as a signature, print the parameter types
   // seperated by ', ' to the outputStream.  Prints external names as
   //  'double' or 'java.lang.Object[][]'.
-  void print_as_signature_external_parameters(outputStream *os);
+  //void print_as_signature_external_parameters(outputStream *os);
 
   // Printing
   void print_symbol_on(outputStream* st = NULL) const;
