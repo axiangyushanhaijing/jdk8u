@@ -187,6 +187,14 @@ void C1_MacroAssembler::initialize_body(Register obj, Register len_in_bytes, int
   // len_in_bytes is positive and ptr sized
   sub(len_in_bytes, len_in_bytes, hdr_size_in_bytes);
   beqz(len_in_bytes, done);
+#ifdef ASSERT
+  { Label L;
+    andi(t0, len_in_bytes, BytesPerWord - 1);
+    bnez(t0, L);
+    stop("index is not a multiple of BytesPerWord");
+    bind(L);
+  }
+#endif
 
   // Preserve obj
   if (hdr_size_in_bytes) {
