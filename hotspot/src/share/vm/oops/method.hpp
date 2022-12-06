@@ -212,8 +212,8 @@ class Method : public Metadata {
   // area if a buffer is not provided by the caller.
   char* name_and_sig_as_C_string() const;
   char* name_and_sig_as_C_string(char* buf, int size) const;
-  //void  print_external_name(outputStream *os) const;
-  //static void  print_external_name(outputStream *os, Klass* klass, Symbol* method_name, Symbol* signature);
+  void  print_external_name(outputStream *os) const;
+  static void  print_external_name(outputStream *os, Klass* klass, Symbol* method_name, Symbol* signature);
 
 
   // Static routine in the situations we don't have a Method*

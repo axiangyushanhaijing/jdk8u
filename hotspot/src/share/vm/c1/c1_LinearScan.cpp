@@ -6253,15 +6253,15 @@ void ControlFlowOptimizer::delete_unnecessary_jumps(BlockList* code) {
               // There might be a cmove inserted for profiling which depends on the same
               // compare. If we change the condition of the respective compare, we have
               // to take care of this cmove as well.
-            //  LIR_Op2* prev_cmove = NULL;
+              LIR_Op2* prev_cmove = NULL;
 
               for(int j = instructions->length() - 3; j >= 0 && prev_cmp == NULL; j--) {
                 prev_op = instructions->at(j);
-                /*if (prev_op->code() == lir_cmove) {
+                if (prev_op->code() == lir_cmove) {
                   assert(prev_op->as_Op2() != NULL, "cmove must be of type LIR_Op2");
                   prev_cmove = (LIR_Op2*)prev_op;
                   assert(prev_branch->cond() == prev_cmove->condition(), "should be the same");
-                }*/
+                }
                 if (prev_op->code() == lir_cmp) {
                   assert(prev_op->as_Op2() != NULL, "branch must be of type LIR_Op2");
                   prev_cmp = (LIR_Op2*)prev_op;
@@ -6281,7 +6281,7 @@ void ControlFlowOptimizer::delete_unnecessary_jumps(BlockList* code) {
                 prev_cmp->set_condition(prev_branch->cond());
 #endif
                 instructions->truncate(instructions->length() - 1);
-/*#ifndef NO_FLAG_REG
+#ifndef NO_FLAG_REG
                 // if we do change the condition, we have to change the cmove as well
                 if (prev_cmove != NULL) {
                   prev_cmove->set_condition(prev_branch->cond());
@@ -6289,7 +6289,7 @@ void ControlFlowOptimizer::delete_unnecessary_jumps(BlockList* code) {
                   prev_cmove->set_in_opr1(prev_cmove->in_opr2());
                   prev_cmove->set_in_opr2(t);
                 }
-#endif*/
+#endif
               }
             }
           }
