@@ -340,10 +340,11 @@ class LIRGenerator: public InstructionVisitor, public BlockClosure {
   void new_instance    (LIR_Opr  dst, ciInstanceKlass* klass, bool is_unresolved, LIR_Opr  scratch1, LIR_Opr  scratch2, LIR_Opr  scratch3,  LIR_Opr scratch4, LIR_Opr  klass_reg, CodeEmitInfo* info);
   void do_LibmIntrinsic(Intrinsic* x);
   // machine dependent
+#ifndef NO_FLAG_REG
   void cmp_mem_int(LIR_Condition condition, LIR_Opr base, int disp, int c, CodeEmitInfo* info);
   void cmp_reg_mem(LIR_Condition condition, LIR_Opr reg, LIR_Opr base, int disp, BasicType type, CodeEmitInfo* info);
   void cmp_reg_mem(LIR_Condition condition, LIR_Opr reg, LIR_Opr base, LIR_Opr disp, BasicType type, CodeEmitInfo* info);
-
+#endif
   void arraycopy_helper(Intrinsic* x, int* flags, ciArrayKlass** expected_type);
 
   // returns a LIR_Address to address an array location.  May also
