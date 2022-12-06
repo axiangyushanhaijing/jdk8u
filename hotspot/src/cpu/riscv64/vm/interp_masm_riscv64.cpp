@@ -26,7 +26,7 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
-#include "barrierSetAssembler_riscv64.hpp"
+//#include "barrierSetAssembler_riscv64.hpp"
 #include "interp_masm_riscv64.hpp"
 #include "interpreter/interpreter.hpp"
 #include "interpreter/interpreterRuntime.hpp"
@@ -310,7 +310,7 @@ void InterpreterMacroAssembler::load_resolved_klass_at_offset(
   slli(temp2, index, LogBytesPerWord);
   add(temp, temp2, cpool);
   ld(temp, Address(temp, sizeof(ConstantPool))); // temp = resolved_klass_index
-  //ld(klass, Address(cpool, ConstantPool::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
+  //ld(klass, Address(cpool, ConstantPoolCache::resolved_klasses_offset_in_bytes())); // klass = cpool->_resolved_klasses
   //slli(temp, temp, LogBytesPerWord);
   //add(klass, klass, temp);
  // ld(klass, Address(klass, Array<Klass*>::base_offset_in_bytes()));

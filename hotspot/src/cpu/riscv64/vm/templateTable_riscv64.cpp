@@ -1964,7 +1964,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
     __ push_i(x11);
     // Adjust the bcp by the 16-bit displacement in x12
     __ add(xbcp, xbcp, x12);
-    __ load_unsigned_byte(t0, Address(xbcp, 0));
+    //__ load_unsigned_byte(t0, Address(xbcp, 0));
     // load the next target bytecode into t0, it is the argument of dispatch_only
     __ dispatch_only(vtos, /*generate_poll*/true);
     return;
@@ -2041,7 +2041,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
       if (ProfileInterpreter) {
         // Test to see if we should create a method data oop
         //__ lwu(t0, Address(t1, in_bytes(MethodCounters::interpreter_profile_limit_offset())));
-        __ lwu(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit)); 
+        __ la(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit)); 
         __ blt(x10, t0, dispatch);
 
         // if no method data exists, go to profile method
@@ -2050,7 +2050,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
         if (UseOnStackReplacement) {
           // check for overflow against x11 which is the MDO taken count
           //__ lwu(t0, Address(t1, in_bytes(MethodCounters::interpreter_backward_branch_limit_offset())));
-          __ lwu(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit)); 
+          __ la(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit)); 
           __ bltu(x11, t0, dispatch); // Intel == Assembler::below, lo:unsigned lower
 
           // When ProfileInterpreter is on, the backedge_count comes
@@ -2069,7 +2069,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
           // check for overflow against x10, which is the sum of the
           // counters
           //__ lwu(t0, Address(t1, in_bytes(MethodCounters::interpreter_backward_branch_limit_offset())));
-          __ lwu(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit));
+          __ la(t0, ExternalAddress((address) &InvocationCounter::InterpreterBackwardBranchLimit));
           __ bgeu(x10, t0, backedge_counter_overflow); // Intel == Assembler::aboveEqual
         }
       }
@@ -2095,7 +2095,7 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
       __ j(dispatch);
     }
 
-    if (UseOnStackReplacement) {
+    if (TieredCompilation || UseOnStackReplacement) {
       // invocation counter overflow
       __ bind(backedge_counter_overflow);
       __ neg(x12, x12);
@@ -2105,6 +2105,12 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
                  CAST_FROM_FN_PTR(address,
                                   InterpreterRuntime::frequency_counter_overflow),
                  x12);
+     if (!UseOnStackReplacement){
+       __ j(dispatch);
+     }
+       
+    }
+  if (UseOnStackReplacement) {
       __ load_unsigned_byte(x11, Address(xbcp, 0));  // restore target bytecode
 
       // x10: osr nmethod (osr ok) or NULL (osr not possible)
@@ -2113,9 +2119,9 @@ void TemplateTable::branch(bool is_jsr, bool is_wide)
       __ beqz(x10, dispatch);     // test result -- no osr if null
       // nmethod may have been invalidated (VM may block upon call_VM return)
       __ lbu(x12, Address(x10, nmethod::entry_bci_offset()));
-      if (nmethod::in_use != 0) {
-        __ sub(x12, x12, nmethod::in_use);
-      }
+      //if (nmethod::in_use != 0) {
+       // __ sub(x12, x12, nmethod::in_use);
+      //}
       __ bnez(x12, dispatch);
 
       // We have the address of an on stack replacement routine in x10
