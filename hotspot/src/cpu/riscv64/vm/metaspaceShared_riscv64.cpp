@@ -64,7 +64,7 @@ void MetaspaceShared::generate_vtable_methods(void** vtbl_list,
                                                    char** mc_top,
                                                    char* mc_end) {
 
-  /*intptr_t vtable_bytes = (num_virtuals * vtbl_list_size) * sizeof(void*);
+  intptr_t vtable_bytes = (num_virtuals * vtbl_list_size) * sizeof(void*);
   *(intptr_t *)(*md_top) = vtable_bytes;
   *md_top += sizeof(intptr_t);
   void** dummy_vtable = (void**)*md_top;
@@ -85,25 +85,27 @@ void MetaspaceShared::generate_vtable_methods(void** vtbl_list,
       // Load rscratch1 with a value indicating vtable/offset pair.
       // -- bits[ 7..0]  (8 bits) which virtual method in table?
       // -- bits[12..8]  (5 bits) which virtual method table?
-      __ mov(rscratch1, (i << 8) + j);
-      __ b(common_code);
+      __ mv(t0, (i << 8) + j);
+      __ j(common_code);
     }
   }
 
   __ bind(common_code);
 
-  Register tmp0 = r10, tmp1 = r11;       // AAPCS64 temporary registers
+  Register tmp0 = x10, tmp1 = x11;       // AAPCS64 temporary registers
   __ enter();
-  __ lsr(tmp0, rscratch1, 8);            // isolate vtable identifier.
-  __ mov(tmp1, (address)vtbl_list);      // address of list of vtable pointers.
-  __ ldr(tmp1, Address(tmp1, tmp0, Address::lsl(LogBytesPerWord))); // get correct vtable pointer.
-  __ str(tmp1, Address(c_rarg0));        // update vtable pointer in obj.
-  __ add(rscratch1, tmp1, rscratch1, ext::uxtb, LogBytesPerWord); // address of real method pointer.
-  __ ldr(rscratch1, Address(rscratch1)); // get real method pointer.
-  __ blr(rscratch1);                     // jump to the real method.
+  __ srli(tmp0, t0, 8);           // isolate vtable identifier.
+  __ mv(tmp1, (address)vtbl_list);        // address of list of vtable pointers.
+  __ slli(tmp1,tmp0,LogBytesPerWord); // get correct vtable pointer.
+  __ ld(tmp1, Address(tmp1, 0));       // update vtable pointer in obj.
+  __ sd(tmp1, Address(c_rarg0));  
+  //__ add(rscratch1, tmp1, rscratch1, ext::uxtb, LogBytesPerWord); // address of real method pointer.
+  __ ld(t0, Address(t0, 0)); 
+  //__ ldr(rscratch1, Address(rscratch1)); // get real method pointer.
+  __ jr(t0);                     // jump to the real method.
   __ leave();
-  __ ret(lr);
+  __ ret();
 
-  *mc_top = (char*)__ pc();*/
+  *mc_top = (char*)__ pc();
 }
 

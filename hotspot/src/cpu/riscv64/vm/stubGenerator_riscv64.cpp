@@ -1111,8 +1111,10 @@ void gen_write_ref_array_post_barrier(Register start, Register end, Register scr
       if (VerifyOops)
         verify_oop_array(size, d, count, x28);
       __ sub(count, count, 1); // make an inclusive end pointer
-      __ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
-      gen_write_ref_array_post_barrier(d, count, t1);
+      //__ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
+      __ slli(count, count, exact_log2(size));
+      __ add(d, d, count);
+      gen_write_ref_array_post_barrier(d, count, t0);
     }
  
     __ leave();
@@ -1172,7 +1174,9 @@ void gen_write_ref_array_post_barrier(Register start, Register end, Register scr
       if (VerifyOops)
         verify_oop_array(size, d, count, x28);
       __ sub(count, count, 1); // make an inclusive end pointer
-      __ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
+      //__ lea(count, Address(d, count, Address::lsl(exact_log2(size))));
+      __ slli(count, count, exact_log2(size));
+      __ add(d, d, count);     
       gen_write_ref_array_post_barrier(d, count, t1);
     }
 
@@ -2780,10 +2784,10 @@ void gen_write_ref_array_post_barrier(Register start, Register end, Register scr
       generate_throw_exception("StackOverflowError throw_exception",
                                CAST_FROM_FN_PTR(address,
                                                 SharedRuntime::throw_StackOverflowError));
-    StubRoutines::_throw_delayed_StackOverflowError_entry =
-      generate_throw_exception("delayed StackOverflowError throw_exception",
-                               CAST_FROM_FN_PTR(address,
-                                                SharedRuntime::throw_delayed_StackOverflowError));
+   // StubRoutines::_throw_delayed_StackOverflowError_entry =
+     // generate_throw_exception("delayed StackOverflowError throw_exception",
+       //                        CAST_FROM_FN_PTR(address,
+         //                                       SharedRuntime::throw_delayed_StackOverflowError));
   }
 
   void generate_all() {
