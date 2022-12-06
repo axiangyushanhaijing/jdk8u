@@ -205,7 +205,7 @@ const char* Symbol::as_klass_external_name() const {
   }
   return str;
 }
-/*static void print_class(outputStream *os, char *class_str, int len) {
+static void print_class(outputStream *os, char *class_str, int len) {
   for (int i = 0; i < len; ++i) {
     if (class_str[i] == '/') {
       os->put('.');
@@ -262,7 +262,7 @@ void Symbol::print_as_signature_external_parameters(outputStream *os) {
     }
     first = false;
   }
-}*/
+}
 // Alternate hashing for unbalanced symbol tables.
 unsigned int Symbol::new_hash(juint seed) {
   ResourceMark rm;

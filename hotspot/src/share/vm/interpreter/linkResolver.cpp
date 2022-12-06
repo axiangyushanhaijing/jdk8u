@@ -1701,7 +1701,7 @@ void LinkResolver::resolve_dynamic_call(CallInfo& result,
 }
 
 // Selected method is abstract.
-/*void LinkResolver::throw_abstract_method_error(const methodHandle& resolved_method,
+void LinkResolver::throw_abstract_method_error(const methodHandle& resolved_method,
                                                const methodHandle& selected_method,
                                                Klass *recv_klass, TRAPS) {
   Klass *resolved_klass = resolved_method->method_holder();
@@ -1736,7 +1736,7 @@ void LinkResolver::resolve_dynamic_call(CallInfo& result,
   }
 
   THROW_MSG(vmSymbols::java_lang_AbstractMethodError(), ss.as_string());
-}*/
+}
 //------------------------------------------------------------------------------------------------------------------------
 #ifndef PRODUCT
 

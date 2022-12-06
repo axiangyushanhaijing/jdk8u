@@ -289,19 +289,18 @@ void InterpreterMacroAssembler::get_cache_entry_pointer_at_bcp(Register cache,
  load_heap_oop_rv(result, Address(result, arrayOopDesc::base_offset_in_bytes(T_OBJECT)));
 }*/
 void InterpreterMacroAssembler::load_resolved_reference_at_index(
-                                Register result, Register index) {
+                                Register result, Register index, Register tmp) {
   assert_different_registers(result, index);
-  Register tmp = index;  
+
   get_constant_pool(result);
   // load pointer for resolved_references[] objArray
  // ld(result, Address(result, ConstantPool::cache_offset_in_bytes()));
   ld(result, Address(result, ConstantPool::resolved_references_offset_in_bytes()));
-  
-  ld(result, Address(result, 0));
+  resolve_oop_handle(result, tmp);
   // Add in the index
-  addi(tmp, tmp, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
-  slli(tmp, tmp, LogBytesPerHeapOop);
-  add(result, result, tmp);
+  addi(index, index, arrayOopDesc::base_offset_in_bytes(T_OBJECT) >> LogBytesPerHeapOop);
+  slli(index, index, LogBytesPerHeapOop);
+  add(result, result, index);
   load_heap_oop(result, Address(result, 0));
 }
 
@@ -794,7 +793,7 @@ void InterpreterMacroAssembler::lock_object(Register lock_reg)
     }
 
     // Load (object->mark() | 1) into swap_reg
-    ld(t0, Address(obj_reg, 0));
+    ld(t0, Address(obj_reg, oopDesc::mark_offset_in_bytes()));
     ori(swap_reg, t0, 1);
 
     // Save (object->mark() | 1) into BasicLock's displaced header
@@ -1032,7 +1031,7 @@ void InterpreterMacroAssembler::increment_mdp_data_at(Register mdp_in,
 void InterpreterMacroAssembler::set_mdp_flag_at(Register mdp_in,
                                                 int flag_byte_constant) {
   assert(ProfileInterpreter, "must be profiling interpreter");
-  int flags_offset = in_bytes(DataLayout::header_offset());
+  int flags_offset = in_bytes(DataLayout::flags_offset());
   int header_bits = DataLayout::flag_mask_to_header_mask(flag_byte_constant);
   // Set the flag
   lb(t1, Address(mdp_in, flags_offset));

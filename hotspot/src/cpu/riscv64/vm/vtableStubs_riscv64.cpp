@@ -96,11 +96,11 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
     __ mv(x12, vtable_index);
 
     __ call_VM(noreg, CAST_FROM_FN_PTR(address, bad_compiled_vtable_index), j_rarg0, x12);
-    //const ptrdiff_t estimate = 256;
-   // const ptrdiff_t codesize = __ pc() - start_pc;
-   // slop_delta = estimate - codesize;  // call_VM varies in length, depending on data
-   // slop_bytes += slop_delta;
-   // vmassert(slop_delta >= 0, "vtable #%d: Code size estimate (%d) for DebugVtables too small, required: %d", vtable_index, (int)estimate, (int)codesize);
+    const ptrdiff_t estimate = 256;
+    const ptrdiff_t codesize = __ pc() - start_pc;
+    slop_delta = estimate - codesize;  // call_VM varies in length, depending on data
+    slop_bytes += slop_delta;
+    vmassert(slop_delta >= 0, "vtable #%d: Code size estimate (%d) for DebugVtables too small, required: %d", vtable_index, (int)estimate, (int)codesize);
 
     __ leave();
     __ bind(L);
@@ -112,9 +112,9 @@ VtableStub* VtableStubs::create_vtable_stub(int vtable_index) {
   // lookup_virtual_method generates
   // 4 instructions (maximum value encountered in normal case):li(lui + addiw) + add + ld
   // 1 instruction (best case):ld * 1
- // slop_delta = 16 - (int)(__ pc() - start_pc);
- // slop_bytes += slop_delta;
- //vmassert(slop_delta >= 0, "negative slop(%d) encountered, adjust code size estimate!", slop_delta);
+  slop_delta = 16 - (int)(__ pc() - start_pc);
+  slop_bytes += slop_delta;
+  vmassert(slop_delta >= 0, "negative slop(%d) encountered, adjust code size estimate!", slop_delta);
 
 #ifndef PRODUCT
   if (DebugVtables) {
@@ -221,14 +221,14 @@ VtableStub* VtableStubs::create_itable_stub(int itable_index) {
                              xmethod, temp_reg,
                              L_no_such_interface);
 
-  //const ptrdiff_t lookupSize = __ pc() - start_pc;
+  const ptrdiff_t lookupSize = __ pc() - start_pc;
 
   // Reduce "estimate" such that "padding" does not drop below 8.
- // const ptrdiff_t estimate = 256;
- // const ptrdiff_t codesize = typecheckSize + lookupSize;
-  //slop_delta = (int)(estimate - codesize);
-  //slop_bytes += slop_delta;
-  ///vmassert(slop_delta >= 0, "itable #%d: Code size estimate (%d) for lookup_interface_method too small, required: %d", itable_index, (int)estimate, (int)codesize);
+  const ptrdiff_t estimate = 256;
+  const ptrdiff_t codesize = typecheckSize + lookupSize;
+  slop_delta = (int)(estimate - codesize);
+  slop_bytes += slop_delta;
+  vmassert(slop_delta >= 0, "itable #%d: Code size estimate (%d) for lookup_interface_method too small, required: %d", itable_index, (int)estimate, (int)codesize);
 
 #ifdef ASSERT
   if (DebugVtables) {
@@ -253,8 +253,8 @@ VtableStub* VtableStubs::create_itable_stub(int itable_index) {
   // We force resolving of the call site by jumping to the "handle
   // wrong method" stub, and so let the interpreter runtime do all the
   // dirty work.
- //assert(SharedRuntime::get_handle_wrong_method_stub() != NULL, "check initialization order");
-  __ far_jump(RuntimeAddress(StubRoutines::throw_IncompatibleClassChangeError_entry()));
+ assert(SharedRuntime::get_handle_wrong_method_stub() != NULL, "check initialization order");
+  __ far_jump(RuntimeAddress(SharedRuntime::get_handle_wrong_method_stub()));
 
   masm->flush();
   /* bookkeeping(masm, tty, s, npe_addr, ame_addr, false, itable_index, slop_bytes, 0);*/

@@ -41,11 +41,11 @@ void CompiledIC::cleanup_call_site(virtual_call_Relocation* call_site) {
     InlineCacheBuffer::queue_for_release((CompiledICHolder*)value->data());
   }
 }
-bool CompiledIC::is_icholder_call_site(virtual_call_Relocation* call_site) {
+/*bool CompiledIC::is_icholder_call_site(virtual_call_Relocation* call_site) {
   // This call site might have become stale so inspect it carefully.
   NativeCall* call = nativeCall_at(call_site->addr());
   return is_icholder_entry(call->destination());
-}
+}*/
 // ----------------------------------------------------------------------------
 
 #define __ _masm.
@@ -108,9 +108,8 @@ void CompiledStaticCall::set_to_interpreted( methodHandle callee, address entry)
   }
 
   // Creation also verifies the object.
- // NativeMovConstReg* method_holder
-   // = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
-  NativeMovConstReg* method_holder = nativeMovConstReg_at(stub); 
+  NativeMovConstReg* method_holder
+    = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
 #ifndef PRODUCT
   NativeGeneralJump* jump = nativeGeneralJump_at(method_holder->next_instruction_address());
 
@@ -135,9 +134,8 @@ void CompiledStaticCall::set_stub_to_clean(static_stub_Relocation* static_stub) 
   address stub = static_stub->addr();
   assert(stub != NULL, "stub not found");
   // Creation also verifies the object.
-  //NativeMovConstReg* method_holder
-   // = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
-  NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);
+  NativeMovConstReg* method_holder
+    = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
   method_holder->set_data(0);
 }
 
@@ -156,9 +154,8 @@ void CompiledStaticCall::verify() {
   address stub = find_stub();
   assert(stub != NULL, "no stub found for static call");
   // Creation also verifies the object.
-//  NativeMovConstReg* method_holder
- //   = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
-   NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);
+  NativeMovConstReg* method_holder
+    = nativeMovConstReg_at(stub + NativeFenceI::instruction_size());
   NativeJump* jump = nativeJump_at(method_holder->next_instruction_address());
 
   // Verify state.
