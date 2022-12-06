@@ -132,7 +132,7 @@ class InterpreterMacroAssembler: public MacroAssembler {
   void get_method_counters(Register method, Register mcs, Label& skip);
 
   // Load cpool->resolved_references(index).
-  void load_resolved_reference_at_index(Register result, Register index);
+  void load_resolved_reference_at_index(Register result, Register index, Register tmp = x15);
 
   // Load cpool->resolved_klass_at(index).
   //void load_resolved_klass_at_offset(Register cpool, Register index, Register klass, Register temp);
